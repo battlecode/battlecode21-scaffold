@@ -15,22 +15,6 @@ ext.versions = [
     //scala: '2.11.7'
 ]
 
-// TODO: DELETE CREDENTIALS AFTER PUBLIC RELEASE
-
-// Here we register battlecode's maven repository, so the gradle knows where to download the engine and client from
-repositories {
-    mavenCentral()
-    maven {
-
-        url "https://maven.pkg.github.com/battlecode/battlecode20"
-        credentials {
-            username = project.findProperty("gpr.user")
-            password = new URL("https://2020.battlecode.org/access.txt").text.trim()
-        }
-    }
-    // Use the JCenter repo to resolve Scala dependencies.
-    jcenter()
-}
 
 // Battlecode updates a lot.
 // We should make sure to check for new dependencies frequently.
@@ -79,14 +63,14 @@ configurations {
 
 // Download a different version of the client depending on the local OS.
 def os = System.getProperty("os.name").toLowerCase()
-def clientName = os.startsWith('windows') ? 'battlecode-client-win' :
-                 os.startsWith('mac') ? 'battlecode-client-mac' :
-                 'battlecode-client-linux'
+def clientName = os.startsWith('windows') ? 'battlecode21-client-win' :
+                 os.startsWith('mac') ? 'battlecode21-client-mac' :
+                 'battlecode21-client-linux'
 
 // The dependencies of this project.
 dependencies {
     // The Battlecode engine.
-    implementation group: 'org.battlecode', name: 'battlecode', version: versions.battlecode
+    implementation group: 'org.battlecode', name: 'battlecode21', version: versions.battlecode
 
     // The Battlecode client.
     client group: 'org.battlecode', name: clientName, version: versions.battlecode
@@ -116,6 +100,88 @@ idea {
     }
 }
 
+
+// Here we register battlecode's maven repository, so the gradle knows where to download the engine and client from
+repositories {
+    mavenCentral()
+    maven {
+
+        url "https://maven.pkg.github.com/battlecode/battlecode21"
+        credentials {
+            username = project.findProperty("gpr.user")
+            password = getAccess()
+        }
+    }
+    // Use the JCenter repo to resolve Scala dependencies.
+    jcenter()
+}
+
+
+
+static String getVersionFromWeb() {
+    
+    String[] urls = ["https://2021.battlecode.org/version.txt", "https://battlecode.org/2021version.txt"]
+    String version = null
+
+    for (String url in urls) {
+        try {
+            version = new URL(url).text.trim()
+            break
+        } catch (Exception ex) {}
+    }
+
+    if (version == null) {
+        throw new Exception("Couldn't find new version number. Connect to the internet or update your scaffold")
+    }
+
+    return version
+}
+
+static String getAccessFromWeb() {
+    
+    String[] urls = ["https://2021.battlecode.org/access.txt", "https://battlecode.org/2021access.txt"]
+    String access = null
+
+    for (String url in urls) {
+        try {
+            access = new URL(url).text.trim()
+            break
+        } catch (Exception ex) {
+            println(ex.getMessage)
+        }
+    }
+
+    if (access == null) {
+        throw new Exception("Couldn't find new access key. Connect to the internet or update your scaffold")
+    }
+
+    return access
+}
+
+static String getAccess() {
+    String access = null
+
+    try {
+        access = getAccessFromWeb()
+        new File("access.txt").text = access
+    } catch (Exception ex) {
+        println("Couldn't get access key online, looking for stored copy...")
+
+        access = new File("access.txt").text.trim()
+    }
+
+    try {
+        assert (access.length() > 2)
+    } catch (Exception ex) {
+        throw Exception("Could not find access key online or locally. Connect to the internet or update your scaffold")
+    }
+
+    return access
+
+}
+
+
+
 task version {
     group 'battlecode'
     doLast{
@@ -123,10 +189,12 @@ task version {
     }
 }
 
-task screamForUpdate() {
+task checkForUpdate() {
     group 'battlecode'
     doLast {
-        if (versions.battlecode != new URL("https://2020.battlecode.org/version.txt").text.trim()) print("\n\n\n\n\n\n\tNEW VERSION AVAILABLE\n\trun ./gradlew update to download \n\n\n\n")
+        version = getVersionFromWeb()
+
+        if (versions.battlecode != version) print("\n\n\n\n\n\n\tNEW VERSION" + version + " AVAILABLE\n\trun ./gradlew update to download \n\n\n\n")
     }
 }
 
@@ -136,11 +204,12 @@ task update {
     group 'battlecode'
     doLast {
         //overwrites stored version number
-        new File(projectDir, "version.txt").text = new URL("https://2020.battlecode.org/version.txt").text.trim()
+        version = getVersionFromWeb()
+        new File(projectDir, "version.txt").text = version
 
         //overwrites cached version number
-        versions.battlecode = new File(projectDir, "version.txt").text
-        println("Update Complete")
+        versions.battlecode = version
+        println("Updated to " + version)
     }
 }
 
@@ -151,7 +220,7 @@ task unpackClient(type: Copy, dependsOn: configurations.client) {
     group 'battlecode'
 
     dependsOn configurations.client
-    dependsOn screamForUpdate
+    dependsOn checkForUpdate
     from {
         configurations.client.collect {
             zipTree(it)
