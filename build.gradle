@@ -146,9 +146,7 @@ static String getAccessFromWeb() {
         try {
             access = new URL(url).text.trim()
             break
-        } catch (Exception ex) {
-            println(ex.getMessage)
-        }
+        } catch (Exception ex) {}
     }
 
     if (access == null) {
