@@ -333,13 +333,13 @@ task listMaps {
 
     doLast {
         sourceSets.main.compileClasspath.each {
-            if (it.toString().contains('battlecode-2020')) {
+            if (it.toString().contains('battlecode-2021')) {
                 FileCollection fc = zipTree(it)
                 fc += fileTree(new File(project.projectDir, 'maps'))
                 fc.each {
                     String fn = it.getName()
-                    if (fn.endsWith('.map20')) {
-                        println 'MAP: '+fn.substring(0, fn.indexOf('.map20'))
+                    if (fn.endsWith('.map21')) {
+                        println 'MAP: '+fn.substring(0, fn.indexOf('.map21'))
                     }
                 }
             }
