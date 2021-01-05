@@ -356,9 +356,9 @@ if (System.getProperty("os.arch").matches("^(x8632|x86|i[3-6]86|ia32|x32)\$")) a
 
 
 if (arch32) {
-    def client32Name = os.startsWith('windows') ? 'battlecode-client-win-32' :
+    def client32Name = os.startsWith('windows') ? 'battlecode21-client-win-32' :
             os.startsWith('mac') ? 'UNSUPPORTED' :
-                    'battlecode-client-linux-32'
+                    'battlecode21-client-linux-32'
 
     if (clientName.equals('UNSUPPORTED')) {
         println 'Sorry, the Battlecode client does not support 32-bit architectures for OS X.'
