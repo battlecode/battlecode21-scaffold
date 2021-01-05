@@ -52,7 +52,7 @@ if (!project.hasProperty("classLocation")) {
     ext.classLocation = sourceSets.main.output.classesDirs.getAsPath()
 }
 if (!project.hasProperty("replay")) {
-    ext.replay = 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc20'
+    ext.replay = 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc21'
 }
 
 // Mark the client as a special dependency, so that we can handle it separately.
