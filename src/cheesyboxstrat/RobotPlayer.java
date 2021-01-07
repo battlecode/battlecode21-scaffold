@@ -2,10 +2,14 @@ package cheesyboxstrat;
 import battlecode.common.*;
 
 public strictfp class RobotPlayer {
-    public static final MapLocation slandererBoxCornerOffset = new MapLocation(-5, -4);
+    public static final int MUCKRAKER_IN_BOX_RADIUS = 3;
+    public static final double MUCKRAKER_INFLUENCE_RATIO = .003;
+    public static final int WALL_SLANDERER_POLITICIAN_MINIMUM_INFLUENCE = 100000;
+
+    public static final MapLocation slandererBoxCornerOffset = new MapLocation(5, 4);
     // box near corner offset is (0, 0)
-    public static final MapLocation muckrakerBoxFarCornerOffset = new MapLocation(-9, -8);
-    public static final Direction muckrackerBoxOuterDiagonalDir = Direction.NORTHEAST;
+    public static final MapLocation muckrakerBoxFarCornerOffset = new MapLocation(9, 8);
+    public static final Direction muckrackerBoxOuterDiagonalDir = Direction.SOUTHWEST;
 
     static RobotController rc;
 
@@ -52,7 +56,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.slanderersBuilt = 0;
 
         if (rc.getType() == RobotType.MUCKRAKER) {
-            RobotPlayer.muckrakerBoxLevel = 0;
+            RobotPlayer.muckrakerBoxLevel = 1;
         }
     }
 
@@ -91,21 +95,27 @@ public strictfp class RobotPlayer {
         }
 
         Direction outerBoxBuildDir = muckrackerBoxOuterDiagonalDir;
-        Direction innerBoxLeftBuildDir = muckrackerBoxOuterDiagonalDir.rotateLeft().rotateLeft().rotateLeft();
-        Direction innerBoxRightBuildDir = muckrackerBoxOuterDiagonalDir.rotateRight().rotateRight().rotateRight();
 
         // Otherwise, add to the box of muckrakers
-        if (rc.canBuildRobot(RobotType.MUCKRAKER, innerBoxLeftBuildDir, 1)) {
-            rc.buildRobot(RobotType.MUCKRAKER, innerBoxLeftBuildDir, 1);
-        } else if (rc.canBuildRobot(RobotType.MUCKRAKER, innerBoxRightBuildDir, 1)) {
-            rc.buildRobot(RobotType.MUCKRAKER, innerBoxRightBuildDir, 1);
-        } else if (rc.canBuildRobot(RobotType.MUCKRAKER, outerBoxBuildDir, 1)) {
-            rc.buildRobot(RobotType.MUCKRAKER, outerBoxBuildDir, 1);
+        int muckrakerInfluence = Math.max(1, (int)(rc.getInfluence() * MUCKRAKER_INFLUENCE_RATIO));
+        if (rc.canBuildRobot(RobotType.MUCKRAKER, outerBoxBuildDir, muckrakerInfluence)) {
+            rc.buildRobot(RobotType.MUCKRAKER, outerBoxBuildDir, muckrakerInfluence);
         }
     }
     
     static void runPolitician() throws GameActionException {
-        rc.empower(0);
+        if (rc.getInfluence() < WALL_SLANDERER_POLITICIAN_MINIMUM_INFLUENCE) {
+            MapLocation targetLoc = enlightenmentCenterLoc.subtract(muckrackerBoxOuterDiagonalDir);
+            if (rc.getLocation().equals(targetLoc)) {
+                if (rc.canEmpower(2)) {
+                    rc.empower(2);
+                }
+            } else {
+                moveToWithLeftRotation(targetLoc);
+            }
+        } else if (rc.canEmpower(0)) {
+            rc.empower(0);
+        }
     }
 
     static void runSlanderer() throws GameActionException {
@@ -114,15 +124,11 @@ public strictfp class RobotPlayer {
     }
 
     static void runMuckraker() throws GameActionException {
-        MapLocation innerBoxNearCorner = enlightenmentCenterLoc;
-        MapLocation innerBoxFarCorner = addLocs(enlightenmentCenterLoc, muckrakerBoxFarCornerOffset);
-
         // when on diagonal, move outwards until there is space found along box
         int dx = rc.getLocation().x - enlightenmentCenterLoc.x;
         int dy = rc.getLocation().y - enlightenmentCenterLoc.y;
         if (Math.abs(dx) == Math.abs(dy) &&
                 enlightenmentCenterLoc.directionTo(rc.getLocation()) == muckrackerBoxOuterDiagonalDir) {
-            if (muckrakerBoxLevel == 0) muckrakerBoxLevel = 1;
             Direction leftBackDir = muckrackerBoxOuterDiagonalDir.rotateLeft().rotateLeft().rotateLeft();
             Direction rightBackDir = muckrackerBoxOuterDiagonalDir.rotateRight().rotateRight().rotateRight();
             if (rc.canMove(leftBackDir)) {
@@ -145,10 +151,24 @@ public strictfp class RobotPlayer {
 
         // otherwise, move around box
         Direction boxSide = getRobotBoxSide(boxNearCorner, boxFarCorner);
-        if (boxSide == Direction.NORTH || boxSide == Direction.WEST) {
+        if (boxSide == Direction.SOUTH || boxSide == Direction.EAST) {
             moveAlongBox(boxFarCorner, true);
-        } else if (boxSide == Direction.SOUTH || boxSide == Direction.EAST) {
+        } else if (boxSide == Direction.NORTH || boxSide == Direction.WEST) {
             moveAlongBox(boxFarCorner, false);
+        }
+
+        boolean insideBox = false;
+        MapLocation nextBoxLevelLoc = rc.getLocation().add(boxSide);
+        for (int i = 0; i < MUCKRAKER_IN_BOX_RADIUS; ++i) {
+            if (!rc.canSenseLocation(nextBoxLevelLoc)) break;
+            RobotInfo ri = rc.senseRobotAtLocation(nextBoxLevelLoc);
+            insideBox |= ri != null && ri.getTeam() == rc.getTeam() && ri.getType() == RobotType.MUCKRAKER;
+            nextBoxLevelLoc.add(boxSide);
+        }
+
+        if (insideBox && rc.canMove(boxSide)) {
+            System.out.println("HERE");
+            rc.move(boxSide);
         }
     }
 
@@ -191,6 +211,17 @@ public strictfp class RobotPlayer {
             } else if (rc.canMove(dir.rotateRight())) {
                 rc.move(dir.rotateRight());
             }
+        }
+    }
+
+    static void moveToWithLeftRotation(MapLocation loc) throws GameActionException {
+        Direction dir = rc.getLocation().directionTo(loc);
+        for (int i = 0; i < 8; ++i) {
+            if (rc.canMove(dir)) {
+                rc.move(dir);
+                return;
+            }
+            dir = dir.rotateLeft();
         }
     }
 
