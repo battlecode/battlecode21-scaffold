@@ -10,6 +10,7 @@ public strictfp class RobotPlayer {
     // box near corner offset is (0, 0)
     public static final MapLocation muckrakerBoxFarCornerOffset = new MapLocation(9, 8);
     public static final Direction muckrackerBoxOuterDiagonalDir = Direction.SOUTHWEST;
+    public static final double[] bidPercentages = new double[] {.02, .05, .075, .1, .15, .25}; 
 
     static RobotController rc;
 
@@ -74,16 +75,20 @@ public strictfp class RobotPlayer {
     }
 
     static void runEnlightenmentCenter() throws GameActionException {
-        // System.out.println("influence : " + rc.getInfluence());
+        System.out.println("influence : " + rc.getInfluence());
         int spaceLeft = Integer.MAX_VALUE - rc.getInfluence();
         int passiveIncome = 1000000 + (int)(lastSlandererInfluence * GameConstants.PASSIVE_INFLUENCE_RATIO_SLANDERER);
-        if (passiveIncome > spaceLeft) {
-            // System.out.println("big bid : " + (passiveIncome - spaceLeft));
-            rc.bid(passiveIncome - spaceLeft);
-        } else {
-            rc.bid(2);
+        int minBid = Math.max(passiveIncome - spaceLeft, 1);
+        if(rc.getTeamVotes() <= 1500){
+            System.out.println(minBid);
+            System.out.println((int)(bidPercentages[rc.getRoundNum() / 500] * rc.getInfluence()));
+            rc.bid(Math.max((int)(bidPercentages[rc.getRoundNum() / 500] * rc.getInfluence()), minBid)); 
         }
-
+        else {
+            
+            rc.bid(Math.max(minBid, 1)); 
+        
+        }
         // Build a slanderer every 50 turns
         int influence = rc.getInfluence();
         Direction slandererBuildDir = muckrackerBoxOuterDiagonalDir.opposite();
