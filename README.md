@@ -33,3 +33,4 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - `./gradlew update`
     Update to the newest version! Run every so often
 
+# MinneCal
