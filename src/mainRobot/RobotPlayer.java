@@ -1,4 +1,4 @@
-package examplefuncsplayer;
+package mainRobot;
 import battlecode.common.*;
 
 public strictfp class RobotPlayer {
@@ -143,5 +143,43 @@ public strictfp class RobotPlayer {
             rc.move(dir);
             return true;
         } else return false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // BASIC BUG - just follow the obstacle while it's in the way
+    //             not the best bug, but works for "simple" obstacles
+    //             for better bugs, think about Bug 2!
+
+    static final double passabilityThreshold = 0.7;
+    static Direction bugDirection = null;
+
+    static void basicBug(MapLocation target) throws GameActionException {
+        Direction d = rc.getLocation().directionTo(target);
+        if (rc.getLocation().equals(target)) {
+            // do something else, now that you're there
+            // here we'll just explode
+            if (rc.canEmpower(1)) {
+                rc.empower(1);
+            }
+        } else if (rc.isReady()) {
+            if (rc.canMove(d) && rc.sensePassability(rc.getLocation().add(d)) >= passabilityThreshold) {
+                rc.move(d);
+                bugDirection = null;
+            } else {
+                if (bugDirection == null) {
+                    bugDirection = d;
+                }
+                for (int i = 0; i < 8; ++i) {
+                    if (rc.canMove(bugDirection) && rc.sensePassability(rc.getLocation().add(bugDirection)) >= passabilityThreshold) {
+                        rc.setIndicatorDot(rc.getLocation().add(bugDirection), 0, 255, 255);
+                        rc.move(bugDirection);
+                        bugDirection = bugDirection.rotateLeft();
+                        break;
+                    }
+                    rc.setIndicatorDot(rc.getLocation().add(bugDirection), 255, 0, 0);
+                    bugDirection = bugDirection.rotateRight();
+                }
+            }
+        }
     }
 }
