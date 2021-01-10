@@ -145,6 +145,7 @@ public strictfp class RobotPlayer {
         } else return false;
     }
 
+    
     ////////////////////////////////////////////////////////////////////////////
     // BASIC BUG - just follow the obstacle while it's in the way
     //             not the best bug, but works for "simple" obstacles
