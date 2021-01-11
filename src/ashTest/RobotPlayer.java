@@ -232,7 +232,7 @@ public strictfp class RobotPlayer {
     }
         // actual location would be retrieved from the flag placed
 
-    public static void run() {
+//    public static void run() {
 //        while (true) {
 //            //TODO: determine flag
 //            MapLocation target = getLocationFromFlag(flag);
@@ -243,7 +243,7 @@ public strictfp class RobotPlayer {
 //            }
 //            Clock.yield();
 //        }
-    }
+//    }
 
     // we can almost always move so lets make a threshold
     static final double passabilityThreshold = 0.7;      // sqaure that we're happy to walk on and above
