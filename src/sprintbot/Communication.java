@@ -237,7 +237,7 @@ public class Communication {
         MapLocation missionSectionLoc = null;
         for (int i = MAX_NUM_MISSIONS - 1; i >= 0; i--) {
             MapLocation sectionLoc = missionList[i];
-            if (sectionMissionInfo[sectionLoc.x][sectionLoc.y] == MISSION_TYPE_UNKNOWN) continue;
+            if (sectionLoc == null || sectionMissionInfo[sectionLoc.x][sectionLoc.y] == MISSION_TYPE_UNKNOWN) continue;
             MapLocation sectionCenterLoc = getSectionCenterLoc(sectionLoc);
             if (curLoc.isWithinDistanceSquared(sectionCenterLoc, closestDist - 1)) {
                 closestDist = curLoc.distanceSquaredTo(sectionCenterLoc);

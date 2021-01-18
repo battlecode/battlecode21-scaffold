@@ -40,7 +40,7 @@ public class EnlightenmentCenter {
 
     private static void bid() throws GameActionException {
         if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1) {
-            int influence = (int)(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length]);
+            int influence = (int)(rc.getInfluence() * BID_PERCENTAGES[(rc.getRoundNum() - 1) / (NUM_ROUNDS / BID_PERCENTAGES.length)]);
             if (rc.canBid(influence)) {
                 rc.bid(influence);
             }

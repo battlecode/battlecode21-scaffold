@@ -19,7 +19,9 @@ public class Politician {
             Communication.updateSectionMissionInfo();
             if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
                 missionSectionLoc = Communication.getClosestMission();
-                missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+                if (missionSectionLoc != null) {
+                    missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+                }
             }
             executeTurn(turn++);            
             Clock.yield();
