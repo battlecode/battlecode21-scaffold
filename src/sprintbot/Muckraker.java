@@ -112,7 +112,7 @@ public class Muckraker {
         RobotInfo[] nearbyRobots = senseNearbyRobots(EXPOSE_RADIUS);
                 for(int i = nearbyRobots.length - 1; x >= 0; x--) {
                     RobotInfo robot = nearbyRobots[i]; 
-                    if(getType(robot) == RobotType.SLANDERER && canExpose(robot.location)) {
+                    if(robot.type == RobotType.SLANDERER && robot.team != rc.getTeam() && canExpose(robot.location)) {
                         expose(robot.location); 
                     }
     }
@@ -126,7 +126,7 @@ public class Muckraker {
         RobotInfo nearbyRobots = senseNearbyRobots(MAX_SENSE_RADIUS / 3); 
         for(int i = nearbyRobots.length - 1; x >= 0; x--) {
             RobotInfo robot = nearbyRobots[i]; 
-            if(getType(robot) = RobotType.POLITICIAN) {
+            if(robot.type == RobotType.POLITICIAN && robot.team != rc.getTeam()) {
                 foundPoli = robot.ID; 
                 break;                
             }
