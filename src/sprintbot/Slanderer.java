@@ -25,7 +25,7 @@ public class Slanderer {
         throw new UnsupportedOperationException();
     }
     public static void hideAtLocation(int turnNumber, MapLocation loc) throws GameActionException  {
-        if(loc.compareTo(getLocation())){
+        if(loc.compareTo(rc.getLocation())){
             Pathfinding3.moveTo(loc);
             return false;
         } else return true;    
