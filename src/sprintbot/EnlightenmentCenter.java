@@ -8,6 +8,13 @@ public class EnlightenmentCenter {
     static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
     static final int MAX_SLANDERER_INFLUENCE = 949;
     public static final double[] BID_PERCENTAGES = new double[] {.05, .1, .125, .15, .2};
+    static final int NUM_ROUNDS = 1500
+    static int slanderersBuilt; 
+    static int politiciansBuilt; 
+    static Direction slandererBuildDir; 
+    static Direction poliBuildDir; 
+    static MapLocation ecLoc; 
+    static final Direction[] MUCKRACKER_BUILD_DIRECTIONS = new Direction[]{DIRECTION.NORTHEAST, DIRECTION.NORTHWEST, DIRECTION.WEST, DIRECTION.SOUTHWEST, DIRECTION.SOUTH, DIRECTION.SOUTHEAST}
 
     static RobotController rc;
 
@@ -27,19 +34,53 @@ public class EnlightenmentCenter {
 
     public static void initialize() {
         // throw new UnsupportedOperationException();
+        slanderersBuilt = 0; 
+        politiciansBuilt = 0; 
+        slandererBuildDir = Direction.EAST;
+        poliBuildDir = Direction.NORTH; 
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        buildRandomRobot();
+      //  buildRandomRobot();
+        buildRobot(); 
         bid(); 
         // TODO send missions
     }
 
     private static void bid() {
-        if(rc.getTeamVotes() < 751) {
-            if(rc.canBid(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length])
-                rc.bid()
+        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1) {
+            if(rc.canBid(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length]){
+                rc.bid(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length])
+            }
+                
         }
+    
+    }
+    private static void buildRobot() {
+        //build a slanderer every 50 turns with half influence, up to MAX_SLANDERER_INFLUENCE
+        if (slanderersBuilt <= turnCount / 50 && rc.canBuildRobot(RobotType.SLANDERER, slandererBuildDir, 1)) { 
+            int influence = Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() / 2);
+            rc.buildRobot(RobotType.SLANDERER, slandererBuildDir, influence);
+            slanderersBuilt++;
+            return;
+        }
+        //build a politician every 20 turns with 20% of our influence. 
+        else if (politiciansBuilt <= turnCount / 20 && rc.canBuildRobot(RobotType.SLANDERER, poliBuildDir, 1 ) ){
+            int influence = rc.getInfluence() / 5; 
+            rc.buildRobot(RobotType.POLITICIAN, poliBuildDir, influence); 
+            politiciansBuilt++; 
+            return; 
+        }
+        //if we are not building a slanderer or poli we should always be producing muckrakers. 
+        else {
+            for(int i = MUCKRACKER_BUILD_DIRECTIONS.length - 1; i >= 0; i--){
+                if(rc.canBuildRobot(RobotType.MUCKRAKER, MUCKRACKER_BUILD_DIRECTIONS[i], 1)) {
+                    rc.buildRobot(RobotType.MUCKRAKER, MUCKRACKER_BUILD_DIRECTIONS[i], 1); 
+                    break;
+                }
+            }
+        }
+
     
     }
 
