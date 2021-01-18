@@ -180,6 +180,11 @@ public class Communication {
         }
     }
 
+    public static void sendMissionInfo(int sectionX, int sectionY, int missionType) throws GameActionException {
+        int sectionLocNum = sectionX | (sectionY << 5); // first 10 bits
+        RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
+    }
+
     public static int getMissionTypeInSection(int sectionX, int sectionY) {
         if (RobotPlayer.rc.getRoundNum() - roundMissionAssigned[sectionX][sectionY] > MISSION_DURATION) {
             return MISSION_TYPE_UNKNOWN;

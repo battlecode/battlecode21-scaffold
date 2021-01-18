@@ -19,6 +19,9 @@ public class Muckraker {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
+            Communication.updateIDList(false);
+            Communication.updateSectionMissionInfo();
+            Communication.sendSectionInfo();
             executeTurn(turn++);
             Clock.yield();
         }

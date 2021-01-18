@@ -14,6 +14,8 @@ public class EnlightenmentCenter {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
+            Communication.updateIDList(true);
+            Communication.updateSectionRobotInfo();
             executeTurn(turn++);
             Clock.yield();
         }

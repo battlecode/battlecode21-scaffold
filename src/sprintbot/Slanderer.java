@@ -9,6 +9,8 @@ public class Slanderer {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
+            Communication.updateIDList(false);
+            Communication.updateSectionMissionInfo();
             executeTurn(turn++);
             Clock.yield();
         }
