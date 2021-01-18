@@ -95,7 +95,7 @@ public class Politician {
 
         for(int i = nearbyRobots.length - 1; i >= 0; i--) { 
             RobotInfo robot = nearbyRobots[i]; 
-            if(robot.type = RobotType.MUCKRAKER && robot.team != rc.getTeam()) {
+            if(robot.type == RobotType.MUCKRAKER && robot.team != rc.getTeam()) {
                 if(robot.location.distanceSquaredTo(rc.getLocation()) <= 9)
                     rc.empower(robot.location.distanceSquaredTo(rc.getLocation()));
                 else {

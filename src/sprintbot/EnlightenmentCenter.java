@@ -54,7 +54,7 @@ public class EnlightenmentCenter {
         //build a slanderer every 50 turns with half influence, up to MAX_SLANDERER_INFLUENCE
         if (slanderersBuilt <= turnCount / 50) { 
             int influence = Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() / 2);
-            if (buildRobot(RobotType.POLITICIAN, influence)) {
+            if (buildRobot(RobotType.SLANDERER, influence)) {
                 slanderersBuilt++;
             }
         }
@@ -84,7 +84,6 @@ public class EnlightenmentCenter {
     }
 
     private static boolean sendMission() throws GameActionException {
-        // TODO add scouting missions
         Team enemyTeam = rc.getTeam().opponent();
         MapLocation curLoc = rc.getLocation();
         int roundNum = rc.getRoundNum();
@@ -96,21 +95,30 @@ public class EnlightenmentCenter {
             if (sectionLoc == null) continue;
 
             boolean isPotentialMissionSection;
-            switch (roundNum % 3) {
-                case 0:
-                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.SLANDERER) ||
-                                                Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.POLITICIAN);
+            switch ((roundNum % 6) + 1) {
+                case Communication.MISSION_TYPE_SLEUTH:
+                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.SLANDERER);
                     break;
-                case 1:
+                case Communication.MISSION_TYPE_STICK:
+                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.POLITICIAN);
+                    break;
+                case Communication.MISSION_TYPE_SIEGE:
                     isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.ENLIGHTENMENT_CENTER) ||
-                                                Communication.isRobotTeamAndTypeInSection(sectionLoc, Team.NEUTRAL, RobotType.ENLIGHTENMENT_CENTER) ||
-                                                Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.MUCKRAKER);
+                                                Communication.isRobotTeamAndTypeInSection(sectionLoc, Team.NEUTRAL, RobotType.ENLIGHTENMENT_CENTER);
                     break;
-                case 2:
+                case Communication.MISSION_TYPE_SCOUT:
+                    // TODO add scouting missions
+                    isPotentialMissionSection = false;
+                    break;
+                case Communication.MISSION_TYPE_DEMUCK:
+                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.MUCKRAKER);
+                    break;
+                case Communication.MISSION_TYPE_HIDE:
                     isPotentialMissionSection = Communication.sectionOnEdge[sectionLoc.x][sectionLoc.y];
                     break;
                 default:
                     isPotentialMissionSection = false;
+                    break;
             }
 
             if (isPotentialMissionSection) {
@@ -123,30 +131,7 @@ public class EnlightenmentCenter {
         }
 
         if (closestSectionLoc != null) {
-            switch (roundNum % 3) {
-                case 0:
-                    if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.SLANDERER)) {
-                        // System.out.println("THERES A SLANDERER HERE: " + closestSectionLoc);
-                        Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_SLEUTH);
-                    } else if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.POLITICIAN)) {
-                        // System.out.println("THERES A POLITICIAN HERE: " + closestSectionLoc);
-                        Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_STICK);
-                    }
-                    break;
-                case 1:
-                    if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.ENLIGHTENMENT_CENTER) ||
-                        Communication.isRobotTeamAndTypeInSection(closestSectionLoc, Team.NEUTRAL, RobotType.ENLIGHTENMENT_CENTER)) {
-                        Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_SIEGE);
-                    } else if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.MUCKRAKER)) {
-                        Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_DEMUCK);
-                    }
-                    break;
-                case 2:
-                    Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_HIDE);
-                    break;
-                default:
-                    break;
-            }
+            Communication.sendMissionInfo(closestSectionLoc, (roundNum % 6) + 1);
             return true;
         }
         return false;
