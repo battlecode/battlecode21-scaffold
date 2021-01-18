@@ -4,8 +4,9 @@ import battlecode.common.*;
 public class EnlightenmentCenter {
 
     static final int MUCKRAKER_INFLUENCE = 1;
-    static final int SLANDERER_INFLUENCE = 100;
     static final int POLITICIAN_INFLUENCE = 50;
+    static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
+    static final int MAX_SLANDERER_INFLUENCE = 949;
 
     static RobotController rc;
 
@@ -28,28 +29,50 @@ public class EnlightenmentCenter {
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        Communication.updateNearbyRobots();
-        Communication.readFlags();
-        switch ((int)(Math.random() * 3)) {
+        buildRandomRobot();
+        // TODO send missions
+    }
+
+    private static void buildRandomRobot() throws GameActionException {
+        int rand = (int)(Math.random() * 3);
+        switch (rand) {
             case 0:
-                if (rc.canBuildRobot(RobotType.MUCKRAKER, Direction.NORTH, MUCKRAKER_INFLUENCE)) {
-                    rc.buildRobot(RobotType.MUCKRAKER, Direction.NORTH, MUCKRAKER_INFLUENCE);
-                }
+                buildRobot(RobotType.MUCKRAKER);
                 break;
             case 1:
-                if (rc.canBuildRobot(RobotType.POLITICIAN, Direction.SOUTH, POLITICIAN_INFLUENCE)) {
-                    rc.buildRobot(RobotType.POLITICIAN, Direction.SOUTH, POLITICIAN_INFLUENCE);
-                }
+                buildRobot(RobotType.SLANDERER);
                 break;
             case 2:
-                if (rc.canBuildRobot(RobotType.SLANDERER, Direction.WEST, SLANDERER_INFLUENCE)) {
-                    rc.buildRobot(RobotType.SLANDERER, Direction.WEST, SLANDERER_INFLUENCE);
-                }
+                buildRobot(RobotType.MUCKRAKER);
                 break;
             default:
                 break;
         }
-        int oppTeamNum = rc.getTeam() == Team.A ? Communication.TEAM_NUM_B : Communication.TEAM_NUM_A;
-        if (Communication.closestRobotLocs[oppTeamNum][])
+    }
+
+    private static boolean buildRobot(RobotType type) throws GameActionException {
+        Direction[] allDirections = Direction.allDirections();
+        for (int i = allDirections.length - 1; i >= 0; --i) {
+            Direction buildDir = allDirections[i];
+            int influence = getInvestedInfluence(type);
+            if (rc.canBuildRobot(type, buildDir, influence)) {
+                rc.buildRobot(type, buildDir, influence);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int getInvestedInfluence(RobotType type) {
+        switch (type) {
+            case MUCKRAKER:
+                return MUCKRAKER_INFLUENCE;
+            case POLITICIAN:
+                return POLITICIAN_INFLUENCE;
+            case SLANDERER:
+                return Math.max((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
+            default:
+                return 0;
+        }
     }
 }

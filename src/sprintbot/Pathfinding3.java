@@ -23,8 +23,6 @@ public class Pathfinding3 {
         return false;
     }
 
-    // TODO 1: save bounds to combat weird diagonal paths when moving out of bounds
-
     private static Direction directionTo(MapLocation targetLoc) throws GameActionException {
         MapLocation startLoc = RobotPlayer.rc.getLocation();
         if (startLoc.equals(targetLoc)) return Direction.CENTER;

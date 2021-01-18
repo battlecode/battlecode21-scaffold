@@ -3,6 +3,8 @@ import battlecode.common.*;
 
 public class Communication {
 
+    // TODO check if section is on an edge (one of edge locations is off the map) and send as part of section info
+
     // ID Storing
 
     static final int MAX_ID = 4096;
@@ -181,6 +183,8 @@ public class Communication {
     }
 
     public static void sendMissionInfo(int sectionX, int sectionY, int missionType) throws GameActionException {
+        sectionMissionInfo[sectionX][sectionY] = missionType;
+        roundMissionAssigned[sectionX][sectionY] = RobotPlayer.rc.getRoundNum();
         int sectionLocNum = sectionX | (sectionY << 5); // first 10 bits
         RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
     }
