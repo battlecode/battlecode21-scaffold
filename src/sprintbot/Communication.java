@@ -54,8 +54,8 @@ public class Communication {
     static final int MAX_SECTION_RANGE = (SECTION_SIZE - 1) * (SECTION_SIZE - 1) * 2;
     static int[][] sectionRobotInfo = new int[NUM_SECTIONS][NUM_SECTIONS];
 
-    static final int TEAM_FRIENDLY = 0;
-    static final int TEAM_ENEMY = 1;
+    static final int TEAM_A = 0;
+    static final int TEAM_B = 1;
     static final int TEAM_NEUTRAL = 2;
 
     static final int TYPE_ENLIGHTENMENT_CENTER = 0;
@@ -111,17 +111,16 @@ public class Communication {
 
     private static int getRobotTeamAndTypeIndex(Team team, RobotType type) {
         int teamNum = getTeamNum(team);
-        int robotTypeNum = getTypeNum(type);
-        return teamNum | (robotTypeNum << 1);
+        int typeNum = getTypeNum(type);
+        return teamNum * 3 + typeNum; // max of 8 (neutral ec)
     }
 
     private static int getTeamNum(Team team) {
-        Team friendlyTeam = RobotPlayer.rc.getTeam();
         switch (team) {
             case A:
-                return friendlyTeam == Team.A ? TEAM_FRIENDLY : TEAM_ENEMY;
+                return TEAM_A;
             case B:
-                return friendlyTeam == Team.B ? TEAM_FRIENDLY : TEAM_ENEMY;
+                return TEAM_B;
             case NEUTRAL:
                 return TEAM_NEUTRAL;
             default:
@@ -149,21 +148,6 @@ public class Communication {
     // called by muckraker, uses ec flags to get mission info
     public static void updateMissions() {
 
-    }
-
-    private static RobotType getRobotType(int robotTypeNum) {
-        switch (robotTypeNum) {
-            case TYPE_NUM_ENLIGHTENMENT_CENTER:
-                return RobotType.ENLIGHTENMENT_CENTER;
-            case TYPE_NUM_MUCKRAKER:
-                return RobotType.MUCKRAKER;
-            case TYPE_NUM_POLITICIAN:
-                return RobotType.POLITICIAN;
-            case TYPE_NUM_SLANDERER:
-                return RobotType.SLANDERER;
-            default:
-                return null;
-        }
     }
 
     private static MapLocation getLocationFromModded(MapLocation moddedLoc) {
