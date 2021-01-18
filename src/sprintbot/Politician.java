@@ -90,7 +90,27 @@ public class Politician {
     // return false if a muck is not found
     public static boolean huntMuck(MapLocation loc) throws GameActionException {
         // have not yet identified muck to destroy
-        if(trackedMuck == -1) {
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots(25); 
+        boolean tracking = false; 
+
+        for(int i = nearbyRobots.length - 1; i >= 0; i--) { 
+            RobotInfo robot = nearbyRobots[i]; 
+            if(robot.type = RobotType.MUCKRAKER && robot.team != rc.getTeam()) {
+                if(robot.location.distanceSquaredTo(rc.getLocation()) <= 9)
+                    rc.empower(robot.location.distanceSquaredTo(rc.getLocation()));
+                else {
+                    Pathfinding3.moveTo(robot.location); 
+                    tracking = true; 
+                    break;
+                }
+                
+            }
+
+        }
+
+        if(!tracking) Pathfinding3.moveTo(loc); 
+
+    /*    if(trackedMuck == -1) {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
             for(int i = nearbyRobots.length - 1; i >= 0; i--) {
                 RobotInfo robot = nearbyRobots[i]; 
@@ -112,7 +132,7 @@ public class Politician {
             // reset tracked muck and move toward loc
             trackedMuck = -1;
             Pathfinding3.moveTo(loc);
-        }
+        } */
 
         // if near target loc and has no tracked muck, return true
         return rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedMuck == -1;
