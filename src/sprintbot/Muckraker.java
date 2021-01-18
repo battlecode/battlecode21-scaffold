@@ -2,18 +2,16 @@ package sprintbot;
 import battlecode.common.*;
 
 public class Muckraker {
-    static RobotController rc;
     static final int EXPOSE_RADIUS = 12; 
     static final int MAX_SENSE_RADIUS = 30; 
-    static int foundPoli = -1; 
+
+    static RobotController rc;
     static MapLocation startLoc;
-    static MapLocation roamTarget;
-    static int state; 
-    static final int STATE_UNKNOWN = 0;
-    static final int STATE_SLUETH = 1;
-    static final int STATE_SCOUT = 2;
-    static final int STATE_STICK = 3;
-    static MapLocation missionLoc; 
+
+    static int foundPoli = -1; 
+    
+    static int missionType;
+    static MapLocation missionSectionLoc; 
 
 
     public static void run() throws GameActionException {
@@ -24,81 +22,42 @@ public class Muckraker {
             Communication.updateIDList(false);
             Communication.updateSectionMissionInfo();
             Communication.sendSectionInfo();
-            checkForMissions(); 
+            if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
+                missionSectionLoc = Communication.getClosestMission();
+                missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+            }
             executeTurn(turn++);
             Clock.yield();
         }
     }
 
-    private static boolean checkForMissions() {
-        if (state != STATE_UNKNOWN) return false;
-        MapLocation sectionLoc = Communication.getCurrentSection();
-        for (int xDiff = -3; xDiff <= 3; xDiff++) {
-            for (int yDiff = -3; yDiff <= 3; yDiff++) {
-                int sectionX = sectionLoc.x + xDiff;
-                int sectionY = sectionLoc.y + yDiff;
-                if (sectionX < 0 || sectionY < 0 || sectionX >= Communication.NUM_SECTIONS || sectionY >= Communication.NUM_SECTIONS) continue;
-                switch(Communication.getMissionTypeInSection(sectionX, sectionY)){
-                    case Communication.MISSION_TYPE_SLEUTH:
-                        missionLoc = Communication.getSectionCenterLoc(sectionX, sectionY); 
-                        state = STATE_SLUETH;
-                        return true;
-                    case Communication.MISSION_TYPE_SCOUT:
-                        missionLoc = Communication.getSectionCenterLoc(sectionX, sectionY); 
-                        state = STATE_SCOUT;
-                        return true;
-                    case Communication.MISSION_TYPE_STICK:
-                        missionLoc = Communication.getSectionCenterLoc(sectionX, sectionY); 
-                        state = STATE_STICK;
-                        return true;
-                    default: 
-                        break;  
-                }
-               
-            }
-        }
-        return false;
-    }
-    
-
-    public static void initialize() throws GameActionException {
-
-    }
+    public static void initialize() throws GameActionException {}
 
     public static void executeTurn(int turnNumber) throws GameActionException {
+        MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
+        boolean missionComplete = false;
+
         //States: sluething, scouting, sticking
-        switch(state) {
-            case STATE_UNKNOWN:
-                roam();
+        switch(missionType) {
+            case Communication.MISSION_TYPE_SLEUTH: 
+                missionComplete = huntSlanderer(targetLoc);
                 break;
-            case STATE_SLUETH: 
-                if(huntSlanderer(missionLoc)) state = STATE_UNKNOWN;
+            case Communication.MISSION_TYPE_STICK: 
+                missionComplete = stickToPoli(targetLoc);
                 break;
-            case STATE_STICK: 
-                if(stickToPoli(missionLoc)) state = STATE_UNKNOWN;
-                break;
-            case STATE_SCOUT: 
-                if(scouting(missionLoc)) state = STATE_UNKNOWN;
+            case Communication.MISSION_TYPE_SCOUT: 
+                missionComplete = scouting(targetLoc);
                 break;
             default: 
+                Pathfinding3.moveToRandomTarget();
                 break; 
-        
         }
-    }
 
-    private static void roam() throws GameActionException {
-        if (roamTarget == null) {
-            roamTarget = randomMapLocation();
+        if (missionComplete) {
+            Communication.setMissionComplete(missionSectionLoc);
+            missionType = Communication.MISSION_TYPE_UNKNOWN;
+            missionSectionLoc = null;
         }
-        // System.out.println(roamTarget);
-        if (!Pathfinding3.moveTo(roamTarget)) {
-            roamTarget = null;
-        }
-    }
-
-    private static MapLocation randomMapLocation() {
-        MapLocation curLoc = rc.getLocation();
-        return new MapLocation(curLoc.x + (int)(Math.random() * 128 - 64), curLoc.y + (int)(Math.random() * 128 - 64));
     }
 
     private static boolean scouting(MapLocation loc) throws GameActionException {

@@ -3,19 +3,12 @@ import battlecode.common.*;
 
 public class Politician {
     static RobotController rc;
+
     static int trackedMuck = -1;
     static int trackedEC = -1;
 
-    static MapLocation missionLoc;
-    static MapLocation roamTarget;
-
-    static int state;
-
-    static final int STATE_UNKNOWN = 0;
-    static final int STATE_DEMUCK = 1;
-    static final int STATE_SEIGE = 2;
-
-    // TODO check for missions
+    static MapLocation missionSectionLoc;
+    static int missionType;
 
     public static void run() throws GameActionException {
         int turn = 0;
@@ -23,49 +16,39 @@ public class Politician {
         initialize();
         while (true) {
             Communication.updateIDList(false);
-            Communication.updateSectionMissionInfo();            
+            Communication.updateSectionMissionInfo();
+            if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
+                missionSectionLoc = Communication.getClosestMission();
+                missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+            }
             executeTurn(turn++);            
             Clock.yield();
         }
     }
 
-    public static void initialize() {
-        
-    }
+    public static void initialize() {}
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        switch (state) {
-            case STATE_UNKNOWN:
-                roam();
+        MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
+        boolean missionComplete = false;
+
+        switch (missionType) {
+            case Communication.MISSION_TYPE_DEMUCK:
+                missionComplete = huntMuck(targetLoc);
                 break;
-            case STATE_DEMUCK:
-                if (!huntMuck(missionLoc)) {
-                    state = STATE_UNKNOWN;
-                }
-                break;
-            case STATE_SEIGE:
-                if (!siegeEC(missionLoc)) {
-                    state = STATE_UNKNOWN;
-                }
+            case Communication.MISSION_TYPE_SIEGE:
+                missionComplete = siegeEC(targetLoc);
                 break;
             default:
+                Pathfinding3.moveToRandomTarget();
                 break;
         }
-    }
 
-    private static void roam() throws GameActionException {
-        if (roamTarget == null) {
-            roamTarget = randomMapLocation();
+        if (missionComplete) {
+            Communication.setMissionComplete(missionSectionLoc);
+            missionType = Communication.MISSION_TYPE_UNKNOWN;
+            missionSectionLoc = null;
         }
-        // System.out.println(roamTarget);
-        if (!Pathfinding3.moveTo(roamTarget)) {
-            roamTarget = null;
-        }
-    }
-
-    private static MapLocation randomMapLocation() {
-        MapLocation curLoc = rc.getLocation();
-        return new MapLocation(curLoc.x + (int)(Math.random() * 128 - 64), curLoc.y + (int)(Math.random() * 128 - 64));
     }
 
     private static boolean siegeEC(MapLocation loc) throws GameActionException {
@@ -97,8 +80,8 @@ public class Politician {
             Pathfinding3.moveTo(loc);
         }
 
-        // if near target loc and has no tracked ec, return false
-        return !(rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedEC == -1);
+        // if near target loc and has no tracked ec, return true
+        return rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedEC == -1;
     }
 
     // hunt for a muck defensively at a given location
@@ -129,8 +112,8 @@ public class Politician {
             Pathfinding3.moveTo(loc);
         }
 
-        // if near target loc and has no tracked muck, return false
-        return !(rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedMuck == -1);
+        // if near target loc and has no tracked muck, return true
+        return rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedMuck == -1;
     }
     
 }

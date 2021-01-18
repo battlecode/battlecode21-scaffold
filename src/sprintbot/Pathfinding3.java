@@ -24,6 +24,19 @@ public class Pathfinding3 {
         return false;
     }
 
+    static MapLocation randomTargetLoc;
+
+    public static void moveToRandomTarget() throws GameActionException {
+        if (randomTargetLoc == null) {
+            MapLocation randomSectionLoc = new MapLocation((int)(Math.random() * Communication.NUM_SECTIONS),
+                                                           (int)(Math.random() * Communication.NUM_SECTIONS));
+            randomTargetLoc = Communication.getSectionCenterLoc(randomSectionLoc);
+        }
+        if (!Pathfinding3.moveTo(randomTargetLoc)) {
+            randomTargetLoc = null;
+        }
+    }
+
     private static Direction directionTo(MapLocation targetLoc) throws GameActionException {
         MapLocation startLoc = RobotPlayer.rc.getLocation();
         if (startLoc.equals(targetLoc)) return Direction.CENTER;

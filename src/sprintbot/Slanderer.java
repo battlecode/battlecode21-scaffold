@@ -2,16 +2,13 @@ package sprintbot;
 import battlecode.common.*;
 
 public class Slanderer {
-    static RobotController rc;
-    static MapLocation startLoc;
-    static MapLocation hideLoc;
-
     static final int MAX_SQUARED_DIST_FROM_START = 30;
 
-    static int state;
+    static RobotController rc;
+    static MapLocation startLoc;
 
-    static final int STATE_UNKNOWN = 0;
-    static final int STATE_HIDE = 1;
+    static MapLocation missionSectionLoc;
+    static int missionType;
     
     public static void run() throws GameActionException {
         int turn = 0;
@@ -20,7 +17,10 @@ public class Slanderer {
         while (true) {
             Communication.updateIDList(false);
             Communication.updateSectionMissionInfo();
-            checkForMissions();
+            if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
+                missionSectionLoc = Communication.getClosestMission();
+                missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+            }
             executeTurn(turn++);
             Clock.yield();
         }
@@ -29,49 +29,29 @@ public class Slanderer {
     public static void initialize() {
         startLoc = rc.getLocation();
     }
-
-    public static boolean checkForMissions() {
-        if (state != STATE_UNKNOWN) return false;
-        MapLocation sectionLoc = Communication.getCurrentSection();
-        for (int xDiff = -3; xDiff <= 3; xDiff++) {
-            for (int yDiff = -3; yDiff <= 3; yDiff++) {
-                int sectionX = sectionLoc.x + xDiff;
-                int sectionY = sectionLoc.y + yDiff;
-                if (sectionX < 0 || sectionY < 0 || sectionX >= Communication.NUM_SECTIONS || sectionY >= Communication.NUM_SECTIONS) continue;
-                if (Communication.getMissionTypeInSection(sectionX, sectionY) == Communication.MISSION_TYPE_HIDE) {
-                    hideLoc = Communication.getSectionCenterLoc(sectionX, sectionY);
-                    state = STATE_HIDE;
-                    return true;
-                } 
-            }
-        }
-        return false;
-    }
     
     public static void executeTurn(int turnNumber) throws GameActionException {
-        switch (state) {
-            case STATE_UNKNOWN:
-                tryRoam();
-                break;
-            case STATE_HIDE:
-                hideAtLocation(hideLoc);
+        MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
+
+        switch (missionType) {
+            case Communication.MISSION_TYPE_HIDE:
+                hideAtLocation(targetLoc);
                 break;
             default:
+                roamCloseToStart();
                 break;
         }
     }
 
-    private static boolean tryRoam() throws GameActionException {
+    private static void roamCloseToStart() throws GameActionException {
         Direction[] allDirections = Direction.allDirections();
         for (int i = allDirections.length - 1; i >= 0; i--) {
             Direction nextDir = allDirections[i];
             MapLocation nextLoc = rc.getLocation().add(nextDir);
             if (nextLoc.isWithinDistanceSquared(startLoc, MAX_SQUARED_DIST_FROM_START) && rc.canMove(nextDir)) {
                 rc.move(nextDir);
-                return true;
             }
         }
-        return false;
     }
 
     public static void hideAtLocation(MapLocation loc) throws GameActionException  {
