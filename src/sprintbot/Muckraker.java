@@ -39,6 +39,8 @@ public class Muckraker {
         MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
         boolean missionComplete = false;
 
+        // System.out.println("mission type: " + missionType);
+
         //States: sluething, scouting, sticking
         switch(missionType) {
             case Communication.MISSION_TYPE_SLEUTH: 

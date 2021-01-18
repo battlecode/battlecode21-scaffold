@@ -91,8 +91,9 @@ public class EnlightenmentCenter {
 
         int closestSquaredDist = Integer.MAX_VALUE;
         MapLocation closestSectionLoc = null;
-        for (int i = Communication.sectionsWithRobotsSize - 1; i >= 0; i--) {
+        for (int i = Communication.MAX_NUM_SECTIONS_WITH_ROBOTS - 1; i >= 0; i--) {
             MapLocation sectionLoc = Communication.sectionsWithRobots[i];
+            if (sectionLoc == null) continue;
 
             boolean isPotentialMissionSection;
             switch (roundNum % 3) {
@@ -125,8 +126,10 @@ public class EnlightenmentCenter {
             switch (roundNum % 3) {
                 case 0:
                     if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.SLANDERER)) {
+                        // System.out.println("THERES A SLANDERER HERE: " + closestSectionLoc);
                         Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_SLEUTH);
                     } else if (Communication.isRobotTeamAndTypeInSection(closestSectionLoc, enemyTeam, RobotType.POLITICIAN)) {
+                        // System.out.println("THERES A POLITICIAN HERE: " + closestSectionLoc);
                         Communication.sendMissionInfo(closestSectionLoc, Communication.MISSION_TYPE_STICK);
                     }
                     break;

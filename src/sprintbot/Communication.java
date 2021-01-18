@@ -7,7 +7,7 @@ public class Communication {
 
     static final int MAX_ID = 4096;
 
-    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 128;
+    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 64;
     static int[] friendlyMuckrakerIDs = new int[MAX_NUM_FRIENDLY_MUCKRAKERS];
     static int friendlyMuckrakerIdx = 0;
     static boolean[] friendlyMuckrakerAdded = new boolean[MAX_ID];
@@ -37,6 +37,10 @@ public class Communication {
                         // only ec's care about muckrakers
                         if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id % MAX_ID]) {
                             friendlyMuckrakerAdded[id % MAX_ID] = true;
+                            if (friendlyMuckrakerIDs[friendlyMuckrakerIdx] != 0) {
+                                // reset old muckraker id availability
+                                friendlyMuckrakerAdded[(friendlyMuckrakerIDs[friendlyMuckrakerIdx]) % MAX_ID] = false;
+                            }
                             friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
                             friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
                         }
@@ -60,9 +64,10 @@ public class Communication {
     static int[][] sectionRobotInfo = new int[NUM_SECTIONS][NUM_SECTIONS];
     static boolean[][] sectionOnEdge = new boolean[NUM_SECTIONS][NUM_SECTIONS];
 
-    static final int MAX_NUM_SECTIONS_WITH_ROBOTS = 300;
+    static final int MAX_NUM_SECTIONS_WITH_ROBOTS = 50;
     static MapLocation[] sectionsWithRobots = new MapLocation[MAX_NUM_SECTIONS_WITH_ROBOTS];
-    static int sectionsWithRobotsSize = 0;
+    static boolean[][] inSectionsWithRobotsList = new boolean[NUM_SECTIONS][NUM_SECTIONS];
+    static int sectionsWithRobotsIdx = 0;
 
     static final int TEAM_A = 0;
     static final int TEAM_B = 1;
@@ -83,8 +88,14 @@ public class Communication {
                 int sectionInfo         = flag >> 11;       // last 13 bits (only 9 bits used)
                 int sectionX = sectionLocNum % NUM_SECTIONS;
                 int sectionY = sectionLocNum / NUM_SECTIONS;
-                if (sectionRobotInfo[sectionX][sectionY] == 0) {
-                    sectionsWithRobots[sectionsWithRobotsSize++] = new MapLocation(sectionX, sectionY);
+                if (!inSectionsWithRobotsList[sectionX][sectionY]) {
+                    if (sectionsWithRobots[sectionsWithRobotsIdx] != null) {
+                        MapLocation oldSectionWithRobots = sectionsWithRobots[sectionsWithRobotsIdx];
+                        inSectionsWithRobotsList[oldSectionWithRobots.x][oldSectionWithRobots.y] = false;
+                    }
+                    sectionsWithRobots[sectionsWithRobotsIdx] = new MapLocation(sectionX, sectionY);
+                    sectionsWithRobotsIdx = (sectionsWithRobotsIdx + 1) % MAX_NUM_SECTIONS_WITH_ROBOTS;
+                    inSectionsWithRobotsList[sectionX][sectionY] = true;
                 }
                 sectionRobotInfo[sectionX][sectionY] = sectionInfo;
                 sectionOnEdge[sectionX][sectionY] = sectionOnEdgeNum == 1;
@@ -140,7 +151,7 @@ public class Communication {
     private static int getRobotTeamAndTypeIndex(Team team, RobotType type) {
         int teamNum = getTeamNum(team);
         int typeNum = getTypeNum(type);
-        return teamNum * 3 + typeNum; // max of 8 (neutral ec)
+        return teamNum * 4 + typeNum; // max of 8 (neutral ec)
     }
 
     private static int getTeamNum(Team team) {
@@ -210,6 +221,9 @@ public class Communication {
                 int flag = RobotPlayer.rc.getFlag(friendlyEnlighenmentCenterIDs[i]);
                 int sectionLocNum   = flag & 0x3FF; // first 10 bits
                 int sectionInfo     = flag >> 10; // last 14 bits (only 4 used)
+                // if (sectionInfo == MISSION_TYPE_DEMUCK) {
+                //     System.out.println("RECEIVED DEMUCK MESSAGE");
+                // }
                 if (!isMissionTypeRelevant(sectionInfo)) continue;
                 int sectionX = sectionLocNum % NUM_SECTIONS;
                 int sectionY = sectionLocNum / NUM_SECTIONS;
@@ -223,6 +237,13 @@ public class Communication {
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
         sectionMissionInfo[sectionLoc.x][sectionLoc.y] = missionType;
         int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
+        if (missionType == MISSION_TYPE_STICK) {
+            System.out.println("SENDING STICK MISSION at " + sectionLoc);
+        } else if (missionType == MISSION_TYPE_SLEUTH) {
+            System.out.println("SENDING SLEUTH MISSION at " + sectionLoc);
+        } else if (missionType == MISSION_TYPE_SCOUT) {
+            System.out.println("SENDING SCOUT MISSION at " + sectionLoc);
+        }
         RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
     }
 
