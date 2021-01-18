@@ -155,12 +155,12 @@ public class Communication {
     
     // mission types - should have no more than 16
     static final int MISSION_TYPE_UNKNOWN = 0;
-    static final int MISSION_TYPE_SLEUTH = 1;
-    static final int MISSION_TYPE_SIEGE = 2;
-    static final int MISSION_TYPE_DEMUCK = 3;
-    static final int MISSION_TYPE_STICK = 4;
-    static final int MISSION_TYPE_HIDE = 5;
-    static final int MISSION_TYPE_SCOUT = 6;
+    static final int MISSION_TYPE_SLEUTH = 1; //kill slanderer
+    static final int MISSION_TYPE_SIEGE = 2;  //attack EC
+    static final int MISSION_TYPE_DEMUCK = 3; //kill muckraker
+    static final int MISSION_TYPE_STICK = 4;  
+    static final int MISSION_TYPE_HIDE = 5;  //hid slanderer
+    static final int MISSION_TYPE_SCOUT = 6; 
 
     static int[][] sectionMissionInfo = new int[NUM_SECTIONS][NUM_SECTIONS];
     static int[][] roundMissionAssigned = new int[NUM_SECTIONS][NUM_SECTIONS];
