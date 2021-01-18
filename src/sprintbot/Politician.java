@@ -21,4 +21,17 @@ public class Politician {
     public static void executeTurn(int turnNumber) throws GameActionException {
         throw new UnsupportedOperationException();
     }
+    //hunt for a muck defensively at a given location
+    public static void huntMuck(MapLocation loc) throws GameActionException {
+        if(getLocation().compareTo(loc) != 0) {
+            moveTo(loc); 
+            return false;
+        }
+        else {
+            
+        
+        }
+
+
+    }
 }
