@@ -100,7 +100,7 @@ public class Muckraker {
     //Muckraker moves towards a location, and when it gets there, checks to see if there is a politician in a 10 r^2 area. 
     //If there is, it always attempts to move towards it until it can no longer sense it (either dead or out of range)
     private static boolean stickToPoli(MapLocation loc) throws GameActionException {
-        if(rc.getLocation().compareTo(loc) != 0) {
+        if(!Communication.getCurrentSection().equals(missionSectionLoc) ) {
             Pathfinding3.moveTo(loc); 
             return false; 
         } else {
@@ -109,10 +109,12 @@ public class Muckraker {
                 RobotInfo robot = nearbyRobots[i]; 
                 if(robot.type == RobotType.POLITICIAN && robot.team != rc.getTeam()) {
                     foundPoli = robot.ID; 
-                    break;                
+                    return trackPolitician();           
                 }
             }
-            return trackPolitician();
+    
+            return true; 
+            
         }
     
     }
