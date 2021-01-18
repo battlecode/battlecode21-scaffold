@@ -111,6 +111,13 @@ public class Communication {
         return getLocationFromModded(moddedSectionCenterX, moddedSectionCenterY);
     }
 
+    public static MapLocation getCurrentSection() {
+        MapLocation robotLoc = RobotPlayer.rc.getLocation();
+        int sectionX = (robotLoc.x % MAP_SIZE) / SECTION_SIZE;
+        int sectionY = (robotLoc.y % MAP_SIZE) / SECTION_SIZE;
+        return new MapLocation(sectionX, sectionY);
+    }
+
     public static boolean isRobotTeamAndTypeInSection(int sectionX, int sectionY, Team team, RobotType type) {
         int sectionInfo = sectionRobotInfo[sectionX][sectionY];
         int idx = getRobotTeamAndTypeIndex(team, type);
