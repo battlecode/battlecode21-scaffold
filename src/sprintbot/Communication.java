@@ -1,87 +1,154 @@
 package sprintbot;
 import battlecode.common.*;
+import javafx.application.Preloader.StateChangeNotification;
 
 public class Communication {
 
-    private static final int MAX_SIZE = 4096;
+    // ID Storing
 
-    static int[] friendlyRobotIDs = new int[MAX_SIZE];
-    static int numFriendlyRobotIDs = 0;
-    static boolean[] added = new boolean[MAX_SIZE];
+    static final int MAX_ID = 4096;
 
-    static void updateNearbyRobots() {
+    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 128;
+    static int[] friendlyMuckrakerIDs = new int[MAX_NUM_FRIENDLY_MUCKRAKERS];
+    static int friendlyMuckrakerIdx = 0;
+    static boolean[] friendlyMuckrakerAdded = new boolean[MAX_ID];
+
+    static final int MAX_NUM_FRIENDLY_ECS = 8;
+    static int[] friendlyEnlighenmentCenterIDs = new int[MAX_NUM_FRIENDLY_ECS];
+    static int friendlyEnlighenmentCenterIdx = 0;
+    static boolean[] friendlyEnlighenmentCenterAdded = new boolean[MAX_ID];
+
+    public static void updateNearbyRobots() {
         Team friendlyTeam = RobotPlayer.rc.getTeam();
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         for (int i = sensedRobots.length; i >= 0; --i) {
-            int id = sensedRobots[i].getID();
-            if (sensedRobots[i].getTeam() == friendlyTeam && !added[id % MAX_SIZE]) {
-                added[id % MAX_SIZE] = true;
-                friendlyRobotIDs[numFriendlyRobotIDs++] = id;
-            }
-            updateNearbyRobot(sensedRobots[i].getLocation(), sensedRobots[i].getTeam(), sensedRobots[i].getType());
-        }
-    }
-
-    private static void updateNearbyRobot(MapLocation robotLoc, Team robotTeam, RobotType robotType) {
-        int teamNum = getRobotTeamNum(robotTeam);
-        int typeNum = getRobotTypeNum(robotType);
-        
-        MapLocation closestRobotLoc = closestRobotLocs[teamNum][typeNum];
-        MapLocation curLoc = RobotPlayer.rc.getLocation();
-        if (closestRobotLoc == null || robotLoc.distanceSquaredTo(curLoc) < closestRobotLoc.distanceSquaredTo(curLoc)) {
-            closestRobotLocs[teamNum][typeNum] = robotLoc;
-        }
-    }
-
-    static MapLocation[][] closestRobotLocs = new MapLocation[3][4];
-
-    public static final int TYPE_NUM_ENLIGHTENMENT_CENTER = 0;
-    public static final int TYPE_NUM_MUCKRAKER = 1;
-    public static final int TYPE_NUM_POLITICIAN = 2;
-    public static final int TYPE_NUM_SLANDERER = 3;
-
-    public static final int TEAM_NUM_A = 0;
-    public static final int TEAM_NUM_B = 1;
-    public static final int TEAM_NUM_NEUTRAL = 2;
-
-    private static final int BIT_SIZE_TARGET_LOC = 14;
-    private static final int BIT_SIZE_COORD = BIT_SIZE_TARGET_LOC / 2;
-    private static final int BIT_MASK_TARGET_LOC = (1 << BIT_SIZE_TARGET_LOC) - 1;
-    private static final int BIT_MASK_COORD = (1 << BIT_SIZE_COORD) - 1;
-
-    private static final int BIT_SIZE_TARGET_TEAM = 2;
-    private static final int BIT_MASK_TARGET_TEAM = (1 << BIT_SIZE_TARGET_TEAM) - 1;
-
-    private static final int MAX_MAP_SIZE = 64;
-
-    // Read Methods
-
-    static void readFlags() throws GameActionException {
-        for (int i = numFriendlyRobotIDs - 1; i >= 0; --i) {
-            if (RobotPlayer.rc.canGetFlag(friendlyRobotIDs[i])) {
-                readFlag(RobotPlayer.rc.getFlag(friendlyRobotIDs[i]));
+            if (sensedRobots[i].getTeam() == friendlyTeam) {
+                int id = sensedRobots[i].getID() % MAX_ID;
+                switch (sensedRobots[i].getType()) {
+                    case ENLIGHTENMENT_CENTER:
+                        if (!friendlyEnlighenmentCenterAdded[id]) {
+                            friendlyEnlighenmentCenterAdded[id] = true;
+                            friendlyEnlighenmentCenterIDs[friendlyEnlighenmentCenterIdx] = id;
+                            friendlyEnlighenmentCenterIdx = (friendlyEnlighenmentCenterIdx + 1) % MAX_NUM_FRIENDLY_ECS;
+                        }
+                        break;
+                    case MUCKRAKER:
+                        if (!friendlyMuckrakerAdded[id]) {
+                            friendlyMuckrakerAdded[id] = true;
+                            friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
+                            friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
 
-    private static void readFlag(int flag) {
-        MapLocation targetLoc = getRobotLocation(flag & BIT_MASK_TARGET_LOC);
-        Team targetTeam = getRobotTeam((flag >> BIT_SIZE_TARGET_LOC) & BIT_MASK_TARGET_TEAM);
-        RobotType targetRobotType = getRobotType(flag >> (BIT_SIZE_TARGET_LOC + BIT_SIZE_TARGET_TEAM));
-        updateNearbyRobot(targetLoc, targetTeam, targetRobotType);
+    // Sections
+
+    static final int MAP_SIZE = 128;
+    static final int SECTION_SIZE = 4;
+    static final int NUM_SECTIONS = MAP_SIZE / SECTION_SIZE;
+    static final int MAX_SECTION_RANGE = (SECTION_SIZE - 1) * (SECTION_SIZE - 1) * 2;
+    static int[][] sectionRobotInfo = new int[NUM_SECTIONS][NUM_SECTIONS];
+
+    static final int TEAM_FRIENDLY = 0;
+    static final int TEAM_ENEMY = 1;
+    static final int TEAM_NEUTRAL = 2;
+
+    static final int TYPE_ENLIGHTENMENT_CENTER = 0;
+    static final int TYPE_MUCKRAKER = 1;
+    static final int TYPE_POLITICIAN = 2;
+    static final int TYPE_SLANDERER = 3;
+
+    // return the actual center location of a given section
+    public static MapLocation getSectionCenterLoc(MapLocation sectionLoc) {
+        MapLocation moddedLoc = new MapLocation(sectionLoc.x * SECTION_SIZE + (SECTION_SIZE / 2),
+                                                sectionLoc.y * SECTION_SIZE + (SECTION_SIZE / 2));
+        return getLocationFromModded(moddedLoc);
     }
 
-    private static Team getRobotTeam(int teamNum) {
-        switch (teamNum) {
-            case TEAM_NUM_A:
-                return Team.A;
-            case TEAM_NUM_B:
-                return Team.B;
-            case TEAM_NUM_NEUTRAL:
-                return Team.NEUTRAL;
+    // called by ec, uses muckraker flags to get section info
+    public static void updateSections() throws GameActionException {
+        for (int i = MAX_NUM_FRIENDLY_MUCKRAKERS - 1; i >= 0; i--) {
+            if (friendlyMuckrakerIDs[i] != 0 && RobotPlayer.rc.canGetFlag(friendlyMuckrakerIDs[i])) {
+                int flag = RobotPlayer.rc.getFlag(friendlyMuckrakerIDs[i]);
+                int sectionLocNum   = flag & 0x3FF; // first 10 bits
+                int sectionInfo     = flag >> 10;   // last 14 bits (only 9 bits used)
+                sectionRobotInfo[sectionLocNum % NUM_SECTIONS][sectionLocNum / NUM_SECTIONS] = sectionInfo;
+            }
+        }
+    }
+
+    // called by muckraker to send section info back to ec
+    public static void sendSectionInfo() throws GameActionException {
+        MapLocation robotLoc = RobotPlayer.rc.getLocation();
+        MapLocation sectionLoc = new MapLocation((robotLoc.x % MAP_SIZE) / SECTION_SIZE, (robotLoc.y % MAP_SIZE) / SECTION_SIZE);
+        int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
+
+        int sectionInfo = 0;
+        RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots(MAX_SECTION_RANGE);
+        for (int i = sensedRobots.length - 1; i >= 0; --i) {
+            MapLocation loc = sensedRobots[i].getLocation();
+            // check if in section
+            if ((loc.x % MAP_SIZE) / SECTION_SIZE == sectionLoc.x && (loc.y % MAP_SIZE) / SECTION_SIZE == sectionLoc.y) {
+                // add robot team and type info to section num
+                int idx = getRobotTeamAndTypeIndex(sensedRobots[i].getTeam(), sensedRobots[i].getType());
+                sectionInfo |= (1 << idx);
+            }
+        }
+
+        RobotPlayer.rc.setFlag(sectionLocNum | (sectionInfo << 10));
+    }
+
+    public static boolean isRobotTeamAndTypeInSection(MapLocation sectionLoc, Team team, RobotType type) {
+        int sectionInfo = sectionRobotInfo[sectionLoc.x][sectionLoc.y];
+        int idx = getRobotTeamAndTypeIndex(team, type);
+        return (sectionInfo & (1 << idx)) != 0;
+    }
+
+    private static int getRobotTeamAndTypeIndex(Team team, RobotType type) {
+        int teamNum = getTeamNum(team);
+        int robotTypeNum = getTypeNum(type);
+        return teamNum | (robotTypeNum << 1);
+    }
+
+    private static int getTeamNum(Team team) {
+        Team friendlyTeam = RobotPlayer.rc.getTeam();
+        switch (team) {
+            case A:
+                return friendlyTeam == Team.A ? TEAM_FRIENDLY : TEAM_ENEMY;
+            case B:
+                return friendlyTeam == Team.B ? TEAM_FRIENDLY : TEAM_ENEMY;
+            case NEUTRAL:
+                return TEAM_NEUTRAL;
             default:
-                return null;
+                return -1;
         }
+    }
+
+    private static int getTypeNum(RobotType type) {
+        switch (type) {
+            case ENLIGHTENMENT_CENTER:
+                return TYPE_ENLIGHTENMENT_CENTER;
+            case MUCKRAKER:
+                return TYPE_MUCKRAKER;
+            case SLANDERER:
+                return TYPE_SLANDERER;
+            case POLITICIAN:
+                return TYPE_POLITICIAN;
+            default:
+                return -1;
+        }
+    }
+
+    // Missions
+
+    // called by muckraker, uses ec flags to get mission info
+    public static void updateMissions() {
+
     }
 
     private static RobotType getRobotType(int robotTypeNum) {
@@ -99,72 +166,28 @@ public class Communication {
         }
     }
 
-    private static MapLocation getRobotLocation(int targetLocNum) {
+    private static MapLocation getLocationFromModded(MapLocation moddedLoc) {
         MapLocation curLoc = RobotPlayer.rc.getLocation();
 
-        int xModded = targetLocNum & 0x7F;
-        int yModded = targetLocNum >> 7;
-        int curXModded = curLoc.x & BIT_MASK_COORD;
-        int curYModded = curLoc.y & BIT_MASK_COORD;
+        int curXModded = curLoc.x % MAP_SIZE;
+        int curYModded = curLoc.y % MAP_SIZE;
 
         int targetX;
-        int xDiff = (xModded - curXModded + (MAX_MAP_SIZE / 2)) & BIT_MASK_COORD;
-        if (xDiff < MAX_MAP_SIZE) {
+        int xDiff = (moddedLoc.x - curXModded + MAP_SIZE) % MAP_SIZE;
+        if (xDiff < MAP_SIZE / 2) {
             targetX = curLoc.x + xDiff;
         } else {
-            targetX = curLoc.x - ((MAX_MAP_SIZE / 2) - xDiff);
+            targetX = curLoc.x - (MAP_SIZE - xDiff);
         }
 
         int targetY;
-        int yDiff = (yModded - curYModded + (MAX_MAP_SIZE / 2)) & BIT_MASK_COORD;
-        if (yDiff < MAX_MAP_SIZE) {
+        int yDiff = (moddedLoc.y - curYModded + MAP_SIZE) % MAP_SIZE;
+        if (yDiff < MAP_SIZE / 2) {
             targetY = curLoc.y + yDiff;
         } else {
-            targetY = curLoc.y - ((MAX_MAP_SIZE / 2) - yDiff);
+            targetY = curLoc.y - (MAP_SIZE - yDiff);
         }
 
         return new MapLocation(targetX, targetY);
-    }
-
-    // Send Methods
-
-    static void sendTargetFlag(MapLocation targetLoc, Team targetTeam, RobotType targetRobotType) throws GameActionException {
-        int targetLocNum = getRobotLocNum(targetLoc);
-        int targetTeamNum = getRobotTeamNum(targetTeam);
-        int targetRobotTypeNum = getRobotTypeNum(targetRobotType);
-        int flag = targetLocNum | (targetTeamNum << BIT_SIZE_TARGET_LOC) | (targetRobotTypeNum << (BIT_SIZE_TARGET_LOC + BIT_SIZE_TARGET_TEAM));
-        RobotPlayer.rc.setFlag(flag);
-    }
-
-    private static int getRobotTeamNum(Team targetTeam) {
-        switch (targetTeam) {
-            case A:
-                return TEAM_NUM_A;
-            case B:
-                return TEAM_NUM_B;
-            case NEUTRAL:
-                return TEAM_NUM_NEUTRAL;
-            default:
-                return -1;
-        }
-    }
-
-    private static int getRobotTypeNum(RobotType targetRobotType) {
-        switch (targetRobotType) {
-            case ENLIGHTENMENT_CENTER:
-                return 0;
-            case MUCKRAKER:
-                return 1;
-            case POLITICIAN:
-                return 2;
-            case SLANDERER:
-                return 3;
-            default:
-                return -1;
-        }
-    }
-
-    private static int getRobotLocNum(MapLocation targetLoc) {
-        return (targetLoc.x & BIT_MASK_COORD) | ((targetLoc.y & BIT_MASK_COORD) << 7);
     }
 }
