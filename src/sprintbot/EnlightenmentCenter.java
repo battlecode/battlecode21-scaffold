@@ -1,4 +1,6 @@
 package sprintbot;
+import java.util.Arrays;
+
 import battlecode.common.*;
 
 public class EnlightenmentCenter {
@@ -17,6 +19,11 @@ public class EnlightenmentCenter {
         while (true) {
             Communication.updateIDList(true);
             Communication.updateSectionRobotInfo();
+            if (rc.getRoundNum() == 1000) {
+                for (int[] a : Communication.sectionRobotInfo) {
+                    System.out.println(Arrays.toString(a));
+                }
+            }
             executeTurn(turn++);
             Clock.yield();
         }
@@ -43,7 +50,7 @@ public class EnlightenmentCenter {
                 buildRobot(RobotType.SLANDERER);
                 break;
             case 2:
-                buildRobot(RobotType.MUCKRAKER);
+                buildRobot(RobotType.POLITICIAN);
                 break;
             default:
                 break;
@@ -70,7 +77,7 @@ public class EnlightenmentCenter {
             case POLITICIAN:
                 return POLITICIAN_INFLUENCE;
             case SLANDERER:
-                return Math.max((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
+                return Math.min((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
             default:
                 return 0;
         }

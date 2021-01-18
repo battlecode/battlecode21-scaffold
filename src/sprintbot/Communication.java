@@ -25,22 +25,23 @@ public class Communication {
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
             if (sensedRobots[i].getTeam() == friendlyTeam) {
-                int id = sensedRobots[i].getID() % MAX_ID;
+                int id = sensedRobots[i].getID();
                 switch (sensedRobots[i].getType()) {
                     case ENLIGHTENMENT_CENTER:
                         // only non-ec's care about ec's
-                        if (!isEnlightenmentCenter && !friendlyEnlighenmentCenterAdded[id]) {
-                            friendlyEnlighenmentCenterAdded[id] = true;
+                        if (!isEnlightenmentCenter && !friendlyEnlighenmentCenterAdded[id % MAX_ID]) {
+                            friendlyEnlighenmentCenterAdded[id % MAX_ID] = true;
                             friendlyEnlighenmentCenterIDs[friendlyEnlighenmentCenterIdx] = id;
                             friendlyEnlighenmentCenterIdx = (friendlyEnlighenmentCenterIdx + 1) % MAX_NUM_FRIENDLY_ECS;
                         }
                         break;
                     case MUCKRAKER:
                         // only ec's care about muckrakers
-                        if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id]) {
-                            friendlyMuckrakerAdded[id] = true;
+                        if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id % MAX_ID]) {
+                            friendlyMuckrakerAdded[id % MAX_ID] = true;
                             friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
                             friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
+                            System.out.println("found a friendly muckraker: " + id);
                         }
                         break;
                     default:

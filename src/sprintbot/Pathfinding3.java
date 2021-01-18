@@ -15,6 +15,7 @@ public class Pathfinding3 {
     private static int[][] par = new int[MAX_SENSE_RANGE + 1][MAX_SENSE_RANGE * 2 + 1];
 
     public static boolean moveTo(MapLocation targetLoc) throws GameActionException {
+        if (RobotPlayer.rc.getCooldownTurns() >= 1) return true;
         Direction dir = directionTo(targetLoc);
         if (RobotPlayer.rc.canMove(dir)) {
             RobotPlayer.rc.move(dir);

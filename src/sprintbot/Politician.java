@@ -15,6 +15,8 @@ public class Politician {
     static final int STATE_DEMUCK = 1;
     static final int STATE_SEIGE = 2;
 
+    // TODO check for missions
+
     public static void run() throws GameActionException {
         int turn = 0;
         rc = RobotPlayer.rc;
@@ -28,7 +30,7 @@ public class Politician {
     }
 
     public static void initialize() {
-        throw new UnsupportedOperationException();
+        
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
@@ -51,13 +53,19 @@ public class Politician {
         }
     }
 
-    public static void roam() throws GameActionException {
+    private static void roam() throws GameActionException {
         if (roamTarget == null) {
             roamTarget = randomMapLocation();
         }
+        // System.out.println(roamTarget);
         if (!Pathfinding3.moveTo(roamTarget)) {
             roamTarget = null;
         }
+    }
+
+    private static MapLocation randomMapLocation() {
+        MapLocation curLoc = rc.getLocation();
+        return new MapLocation(curLoc.x + (int)(Math.random() * 128 - 64), curLoc.y + (int)(Math.random() * 128 - 64));
     }
 
     private static boolean siegeEC(MapLocation loc) throws GameActionException {
@@ -91,11 +99,6 @@ public class Politician {
 
         // if near target loc and has no tracked ec, return false
         return !(rc.getLocation().isWithinDistanceSquared(loc, 6) && trackedEC == -1);
-    }
-
-    public static MapLocation randomMapLocation() {
-        MapLocation curLoc = rc.getLocation();
-        return new MapLocation(curLoc.x + (int)(Math.random() * 128 - 64), curLoc.y + (int)(Math.random() * 128 - 64));
     }
 
     // hunt for a muck defensively at a given location
