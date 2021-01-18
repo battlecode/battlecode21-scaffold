@@ -23,12 +23,12 @@ public class Politician {
     }
     //hunt for a muck defensively at a given location
     public static void huntMuck(MapLocation loc) throws GameActionException {
-        if(getLocation().compareTo(loc) != 0) {
+        if(rc.getLocation().compareTo(loc) != 0) {
             moveTo(loc); 
             return false;
         }
         else {
-            
+
         
         }
 
