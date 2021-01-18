@@ -7,7 +7,11 @@ public class EnlightenmentCenter {
     static final int POLITICIAN_INFLUENCE = 50;
     static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
     static final int MAX_SLANDERER_INFLUENCE = 949;
-    static final double[] BID_PERCENTAGES = new double[] {.05, .1, .125, .15, .2};
+    public static final double[] BID_PERCENTAGES = new double[] {.05, .1, .125, .15, .2};
+    static final int NUM_ROUNDS = 1500;
+
+    static int slanderersBuilt; 
+    static int politiciansBuilt; 
 
     static RobotController rc;
 
@@ -23,22 +27,60 @@ public class EnlightenmentCenter {
         }
     }
 
-    public static void initialize() {}
-
+    public static void initialize() {
+        slanderersBuilt = 0; 
+        politiciansBuilt = 0; 
+    }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        buildRandomRobot();
+        buildRobot(); 
         bid(); 
         sendMission();
     }
 
     private static void bid() throws GameActionException {
-        if(rc.getTeamVotes() < 751) {
-            int bidAmount = (int)(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length]);
-            if(rc.canBid(bidAmount)) {
-                rc.bid(bidAmount);
+        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1) {
+            int influence = (int)(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length]);
+            if (rc.canBid(influence)) {
+                rc.bid(influence);
             }
         }
+    
+    }
+
+    private static void buildRobot() throws GameActionException {
+        int turnCount = RobotPlayer.rc.getRoundNum();
+
+        //build a slanderer every 50 turns with half influence, up to MAX_SLANDERER_INFLUENCE
+        if (slanderersBuilt <= turnCount / 50) { 
+            int influence = Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() / 2);
+            if (buildRobot(RobotType.POLITICIAN, influence)) {
+                slanderersBuilt++;
+            }
+        }
+        //build a politician every 20 turns with 20% of our influence. 
+        else if (politiciansBuilt <= turnCount / 20) {
+            int influence = rc.getInfluence() / 5; 
+            if (buildRobot(RobotType.POLITICIAN, influence)) {
+                politiciansBuilt++; 
+            }
+        }
+        //if we are not building a slanderer or poli we should always be producing muckrakers. 
+        else {
+            buildRobot(RobotType.MUCKRAKER, 1);
+        }
+    }
+
+    private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
+        Direction[] allDirections = Direction.allDirections();
+        for (int i = allDirections.length - 1; i >= 0; --i) {
+            Direction buildDir = allDirections[i];
+            if (rc.canBuildRobot(type, buildDir, influence)) {
+                rc.buildRobot(type, buildDir, influence);
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean sendMission() throws GameActionException {
@@ -105,48 +147,5 @@ public class EnlightenmentCenter {
             return true;
         }
         return false;
-    }
-
-    private static void buildRandomRobot() throws GameActionException {
-        int rand = (int)(Math.random() * 3);
-        switch (rand) {
-            case 0:
-                buildRobot(RobotType.MUCKRAKER);
-                break;
-            case 1:
-                buildRobot(RobotType.SLANDERER);
-                break;
-            case 2:
-                buildRobot(RobotType.POLITICIAN);
-                break;
-            default:
-                break;
-        }
-    }
-
-    private static boolean buildRobot(RobotType type) throws GameActionException {
-        Direction[] allDirections = Direction.allDirections();
-        for (int i = allDirections.length - 1; i >= 0; --i) {
-            Direction buildDir = allDirections[i];
-            int influence = getInvestedInfluence(type);
-            if (rc.canBuildRobot(type, buildDir, influence)) {
-                rc.buildRobot(type, buildDir, influence);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static int getInvestedInfluence(RobotType type) {
-        switch (type) {
-            case MUCKRAKER:
-                return MUCKRAKER_INFLUENCE;
-            case POLITICIAN:
-                return POLITICIAN_INFLUENCE;
-            case SLANDERER:
-                return Math.max((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
-            default:
-                return 0;
-        }
     }
 }
