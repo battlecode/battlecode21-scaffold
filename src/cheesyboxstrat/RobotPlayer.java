@@ -3,14 +3,14 @@ import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     public static final int MUCKRAKER_IN_BOX_RADIUS = 3;
-    public static final double MUCKRAKER_INFLUENCE_RATIO = .003;
-    public static final int WALL_SLANDERER_POLITICIAN_MINIMUM_INFLUENCE = 100000;
+    public static final double MUCKRAKER_INFLUENCE_RATIO = .03;
+    public static final int SLANDERER_MAX_INFLUENCE = 949;
 
-    public static final MapLocation slandererBoxCornerOffset = new MapLocation(5, 4);
+    public static final MapLocation slandererBoxCornerOffset = new MapLocation(-5, -4);
     // box near corner offset is (0, 0)
-    public static final MapLocation muckrakerBoxFarCornerOffset = new MapLocation(9, 8);
-    public static final Direction muckrackerBoxOuterDiagonalDir = Direction.SOUTHWEST;
-    public static final double[] bidPercentages = new double[] {.02, .05, .075, .1, .15, .25}; 
+    public static final MapLocation muckrakerBoxFarCornerOffset = new MapLocation(-9, -8);
+    public static final Direction muckrackerBoxOuterDiagonalDir = Direction.NORTHEAST;
+    public static final double[] bidPercentages = new double[] {.01, .01, .015, .02, .04, .08}; 
 
     static RobotController rc;
 
@@ -75,22 +75,14 @@ public strictfp class RobotPlayer {
     }
 
     static void runEnlightenmentCenter() throws GameActionException {
-        System.out.println("influence : " + rc.getInfluence());
-        int spaceLeft = Integer.MAX_VALUE - rc.getInfluence();
-        int passiveIncome = 1000000 + (int)(lastSlandererInfluence * GameConstants.PASSIVE_INFLUENCE_RATIO_SLANDERER);
-        int minBid = Math.max(passiveIncome - spaceLeft, 1);
-        if(rc.getTeamVotes() <= 1500){
-            System.out.println(minBid);
-            System.out.println((int)(bidPercentages[rc.getRoundNum() / 500] * rc.getInfluence()));
-            rc.bid(Math.max((int)(bidPercentages[rc.getRoundNum() / 500] * rc.getInfluence()), minBid)); 
+        int maxRounds = GameConstants.GAME_MAX_NUMBER_OF_ROUNDS;
+        if(rc.getTeamVotes() <= maxRounds / 2){
+            int idx = rc.getRoundNum() / (maxRounds / bidPercentages.length);
+            rc.bid(Math.max(1, (int)(bidPercentages[idx] * rc.getInfluence()))); 
         }
-        else {
-            
-            rc.bid(Math.max(minBid, 1)); 
-        
-        }
+
         // Build a slanderer every 50 turns
-        int influence = rc.getInfluence();
+        int influence = Math.min(SLANDERER_MAX_INFLUENCE, rc.getInfluence());
         Direction slandererBuildDir = muckrackerBoxOuterDiagonalDir.opposite();
         if (slanderersBuilt <= turnCount / 50 && rc.canBuildRobot(RobotType.SLANDERER, slandererBuildDir, influence)) {
             rc.buildRobot(RobotType.SLANDERER, slandererBuildDir, influence);
@@ -109,17 +101,13 @@ public strictfp class RobotPlayer {
     }
     
     static void runPolitician() throws GameActionException {
-        if (rc.getInfluence() < WALL_SLANDERER_POLITICIAN_MINIMUM_INFLUENCE) {
-            MapLocation targetLoc = enlightenmentCenterLoc.subtract(muckrackerBoxOuterDiagonalDir);
-            if (rc.getLocation().equals(targetLoc)) {
-                if (rc.canEmpower(2)) {
-                    rc.empower(2);
-                }
-            } else {
-                moveToWithLeftRotation(targetLoc);
+        MapLocation targetLoc = enlightenmentCenterLoc.subtract(muckrackerBoxOuterDiagonalDir);
+        if (rc.getLocation().equals(targetLoc)) {
+            if (rc.canEmpower(2)) {
+                rc.empower(2);
             }
-        } else if (rc.canEmpower(0)) {
-            rc.empower(0);
+        } else {
+            moveToWithRightRotation(targetLoc);
         }
     }
 
@@ -156,9 +144,9 @@ public strictfp class RobotPlayer {
 
         // otherwise, move around box
         Direction boxSide = getRobotBoxSide(boxNearCorner, boxFarCorner);
-        if (boxSide == Direction.SOUTH || boxSide == Direction.EAST) {
+        if (boxSide == Direction.NORTH || boxSide == Direction.WEST) {
             moveAlongBox(boxFarCorner, true);
-        } else if (boxSide == Direction.NORTH || boxSide == Direction.WEST) {
+        } else if (boxSide == Direction.SOUTH || boxSide == Direction.EAST) {
             moveAlongBox(boxFarCorner, false);
         }
 
@@ -219,14 +207,14 @@ public strictfp class RobotPlayer {
         }
     }
 
-    static void moveToWithLeftRotation(MapLocation loc) throws GameActionException {
+    static void moveToWithRightRotation(MapLocation loc) throws GameActionException {
         Direction dir = rc.getLocation().directionTo(loc);
         for (int i = 0; i < 8; ++i) {
             if (rc.canMove(dir)) {
                 rc.move(dir);
                 return;
             }
-            dir = dir.rotateLeft();
+            dir = dir.rotateRight();
         }
     }
 
