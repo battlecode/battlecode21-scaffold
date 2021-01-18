@@ -1,6 +1,4 @@
 package sprintbot;
-import java.util.Arrays;
-
 import battlecode.common.*;
 
 public class EnlightenmentCenter {
@@ -9,6 +7,7 @@ public class EnlightenmentCenter {
     static final int POLITICIAN_INFLUENCE = 50;
     static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
     static final int MAX_SLANDERER_INFLUENCE = 949;
+    public static final double[] BID_PERCENTAGES = new double[] {.05, .1, .125, .15, .2};
 
     static RobotController rc;
 
@@ -19,11 +18,6 @@ public class EnlightenmentCenter {
         while (true) {
             Communication.updateIDList(true);
             Communication.updateSectionRobotInfo();
-            if (rc.getRoundNum() == 1000) {
-                for (int[] a : Communication.sectionRobotInfo) {
-                    System.out.println(Arrays.toString(a));
-                }
-            }
             executeTurn(turn++);
             Clock.yield();
         }
@@ -37,7 +31,16 @@ public class EnlightenmentCenter {
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         buildRandomRobot();
+        bid(); 
         // TODO send missions
+    }
+
+    private static void bid() {
+        if(rc.getTeamVotes() < 751) {
+            if(rc.canBid(rc.getInfluence() * BID_PERCENTAGES[rc.getRoundNum() / BID_PERCENTAGES.length])
+                rc.bid()
+        }
+    
     }
 
     private static void buildRandomRobot() throws GameActionException {
@@ -77,7 +80,7 @@ public class EnlightenmentCenter {
             case POLITICIAN:
                 return POLITICIAN_INFLUENCE;
             case SLANDERER:
-                return Math.min((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
+                return Math.max((int)(rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE), MAX_SLANDERER_INFLUENCE);
             default:
                 return 0;
         }
