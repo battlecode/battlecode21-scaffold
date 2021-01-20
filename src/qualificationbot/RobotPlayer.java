@@ -4,6 +4,8 @@ import battlecode.common.*;
 public strictfp class RobotPlayer {
     static RobotController rc;
 
+    static final int SMALL_MUCKRAKER_INFLUENCE = 1;
+
     public static void run(RobotController rc) throws GameActionException {
         RobotPlayer.rc = rc;
 
@@ -12,7 +14,13 @@ public strictfp class RobotPlayer {
                 case ENLIGHTENMENT_CENTER:  EnlightenmentCenter.run();  break;
                 case POLITICIAN:            Politician.run();           break;
                 case SLANDERER:             Slanderer.run();            break;
-                case MUCKRAKER:             Muckraker.run();            break;
+                case MUCKRAKER:
+                    if (rc.getInfluence() == SMALL_MUCKRAKER_INFLUENCE) {
+                        ScoutingMuckraker.run();
+                    } else {
+                        SleuthingMuckraker.run();
+                    }
+                    break;
                 default:                                                break;
             }
         } catch (Exception e) {

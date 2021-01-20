@@ -7,8 +7,6 @@ public class Politician {
     static int trackedMuck = -1;
     static int trackedEC = -1;
 
-    static MapLocation missionSectionLoc;
-    static int missionType;
     static boolean siegeBot; 
     static final int DEMUCK_INF = 20; 
 
@@ -19,14 +17,7 @@ public class Politician {
         while (true) {
             if(siegeBot){
                 Communication.updateSectionMissionInfo();
-                if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
-                    missionSectionLoc = Communication.getClosestMission();
-                    if (missionSectionLoc != null) {
-                        missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
-                    }
             }
-
-            } 
             executeTurn(turn++);            
             Clock.yield();
         }
@@ -40,19 +31,17 @@ public class Politician {
     public static void executeTurn(int turnNumber) throws GameActionException {
         if(!siegeBot) defend(); 
         else {
-        MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
-        boolean missionComplete = false;
-        missionComplete = siegeEC(targetLoc)
-       
-        if (missionComplete) {
-            Communication.setMissionComplete(missionSectionLoc);
-            missionType = Communication.MISSION_TYPE_UNKNOWN;
-            missionSectionLoc = null;
+            MapLocation missionSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
+            if (missionSectionLoc != null) {
+                MapLocation targetLoc = Communication.getSectionCenterLoc(missionSectionLoc);
+                siegeEC(targetLoc);
+            } else {
+                Pathfinding3.moveToRandomTarget();
+            }
         }
     }
-    }
     
-    private static boolean siegeEC(MapLocation loc) throws GameActionException {
+    private static void siegeEC(MapLocation loc) throws GameActionException {
         // have not yet identified ec to destroy
         if(trackedEC == -1) {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
@@ -80,42 +69,34 @@ public class Politician {
             trackedEC = -1;
             Pathfinding3.moveTo(loc);
         }
-
-        // if in mission section and has no tracked ec, return true
-        return inMissionSection() && trackedEC == -1;
     }
 
     // hunt for a muck defensively at a given location
     // return false if a muck is not found
-    public static boolean defend() throws GameActionException {
+    public static void defend() throws GameActionException {
         
-        int closestMuckDist = Integer.MAX_VALUE;
-        MapLocation closestMuckLoc = null;
+        // TODO differentiate between big muckrakers and small muckrakers and try to stick to some of them etc
+
+        int closestDist = Integer.MAX_VALUE;
+        RobotInfo closestTarget = null;
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
         for(int i = nearbyRobots.length - 1; i >= 0; i--) { 
             RobotInfo robot = nearbyRobots[i]; 
-            if(robot.type == RobotType.MUCKRAKER && robot.team != rc.getTeam() && rc.getLocation().isWithinDistanceSquared(robot.location, closestMuckDist - 1)) {
-                closestMuckLoc = robot.location;
-                closestMuckDist = rc.getLocation().distanceSquaredTo(robot.location);
+            if(robot.type == RobotType.MUCKRAKER && robot.team != rc.getTeam() && rc.getLocation().isWithinDistanceSquared(robot.location, closestDist - 1)) {
+                closestTarget = robot;
+                closestDist = rc.getLocation().distanceSquaredTo(robot.location);
             }
         }
 
-        if (closestMuckLoc != null) {
-            if (closestMuckDist <= 9 && rc.canEmpower(closestMuckDist)) {
-                rc.empower(closestMuckDist);
-                return true;
+        if (closestTarget != null) {
+            if (rc.canEmpower(closestTarget.getID())) {
+                rc.empower(closestTarget.getID());
             } else {
-                Pathfinding3.moveTo(closestMuckLoc);
-                return false;
+                Pathfinding3.moveTo(closestTarget.getLocation());
             }
         } else {
-            Pathfinding3.moveTo(randomSectionLoc)
-            return inMissionSection();
+            Pathfinding3.moveToRandomTarget();
         }
-    }
-
-    private static boolean inMissionSection() {
-        return Communication.getCurrentSection().equals(missionSectionLoc);
     }
     
 }

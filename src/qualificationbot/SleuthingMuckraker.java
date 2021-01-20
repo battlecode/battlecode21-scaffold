@@ -23,6 +23,7 @@ public class SleuthingMuckraker {
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
+        // check for nearby enemy slanderers
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         RobotInfo closestTarget = null;
         int closestDist = Integer.MAX_VALUE;
@@ -35,6 +36,7 @@ public class SleuthingMuckraker {
             }
         }
         
+        // if one is found, move to and expose it, otherwise search using mission location
         if (closestTarget != null) {
             if (rc.canExpose(closestTarget.getID())) {
                 rc.expose(rc.getID());
