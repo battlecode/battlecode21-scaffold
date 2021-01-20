@@ -37,6 +37,29 @@ public class Pathfinding3 {
         }
     }
 
+    public static void stickToTarget(MapLocation targetLoc) throws GameActionException {
+        MapLocation targetAdjLoc = getOpenAdjacentLoc(targetLoc);
+        if (targetAdjLoc != null) {
+            moveTo(targetAdjLoc);
+        }
+    }
+
+    public static MapLocation getOpenAdjacentLoc(MapLocation loc) {
+        MapLocation curLoc = RobotPlayer.rc.getLocation();
+        if (curLoc.isWithinDistanceSquared(loc, 2)) {
+            return curLoc;
+        }
+        Direction dir = loc.directionTo(curLoc);
+        for (int i = 7; i >= 0; i--) {
+            MapLocation adjLoc = loc.add(dir);
+            if (RobotPlayer.rc.canSenseLocation(adjLoc) && !RobotPlayer.rc.isLocationOccupied(adjLoc)) {
+                return adjLoc;
+            }
+            dir = dir.rotateLeft();
+        }
+        return null;
+    }
+
     private static Direction directionTo(MapLocation targetLoc) throws GameActionException {
         MapLocation startLoc = RobotPlayer.rc.getLocation();
         if (startLoc.equals(targetLoc)) return Direction.CENTER;

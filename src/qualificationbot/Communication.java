@@ -19,30 +19,29 @@ public class Communication {
         Team friendlyTeam = RobotPlayer.rc.getTeam();
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
-            if (sensedRobots[i].getTeam() == friendlyTeam) {
-                int id = sensedRobots[i].getID();
-                switch (sensedRobots[i].getType()) {
-                    case ENLIGHTENMENT_CENTER:
-                        // only non-ec's care about ec's
-                        if (!isEnlightenmentCenter) {
-                            friendlyECID = id;
+            if (sensedRobots[i].getTeam() != friendlyTeam) continue;
+            int id = sensedRobots[i].getID();
+            switch (sensedRobots[i].getType()) {
+                case ENLIGHTENMENT_CENTER:
+                    // only non-ec's care about ec's
+                    if (!isEnlightenmentCenter) {
+                        friendlyECID = id;
+                    }
+                    break;
+                case MUCKRAKER:
+                    // only ec's care about muckrakers
+                    if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id % MAX_ID]) {
+                        friendlyMuckrakerAdded[id % MAX_ID] = true;
+                        if (friendlyMuckrakerIDs[friendlyMuckrakerIdx] != 0) {
+                            // reset old muckraker id availability
+                            friendlyMuckrakerAdded[(friendlyMuckrakerIDs[friendlyMuckrakerIdx]) % MAX_ID] = false;
                         }
-                        break;
-                    case MUCKRAKER:
-                        // only ec's care about muckrakers
-                        if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id % MAX_ID]) {
-                            friendlyMuckrakerAdded[id % MAX_ID] = true;
-                            if (friendlyMuckrakerIDs[friendlyMuckrakerIdx] != 0) {
-                                // reset old muckraker id availability
-                                friendlyMuckrakerAdded[(friendlyMuckrakerIDs[friendlyMuckrakerIdx]) % MAX_ID] = false;
-                            }
-                            friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
-                            friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                        friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
+                        friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -127,7 +126,7 @@ public class Communication {
             MapLocation loc = sensedRobots[i].getLocation();
             // check if in section
             if ((loc.x % MAP_SIZE) / SECTION_SIZE == sectionX && (loc.y % MAP_SIZE) / SECTION_SIZE == sectionY) {
-                // add robot team and type info to section num
+                // add robot type info to section num
                 int idx = getTypeNum(sensedRobots[i].getType());
                 sectionRobotInfo |= (1 << idx);
                 if (sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
@@ -139,7 +138,7 @@ public class Communication {
         RobotPlayer.rc.setFlag(sectionLocNum |
                               (sectionOnEdgeNum << 10) |
                               (sectionRobotInfo << 11) |
-                              (ecInfluenceInfo << 15));
+                              (ecInfluenceInfo  << 15));
     }
 
     // return the actual center location of a given section
@@ -214,56 +213,10 @@ public class Communication {
     }
 
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
-        sectionMissionInfo[sectionLoc.x][sectionLoc.y] = missionType;
-        int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
-        // if (missionType == MISSION_TYPE_STICK) {
-        //     // System.out.println("SENDING STICK MISSION at " + sectionLoc);
-        // } else if (missionType == MISSION_TYPE_SLEUTH) {
-        //     System.out.println("SENDING SLEUTH MISSION at " + sectionLoc);
-        // } else if (missionType == MISSION_TYPE_SCOUT) {
-        //     System.out.println("SENDING SCOUT MISSION at " + sectionLoc);
-        // }
-        RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
+        int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5);
+        RobotPlayer.rc.setFlag(missionType | (sectionLocNum << 2));
     }
 
-    public static void setMissionComplete(MapLocation missionSectionLoc) {
-        sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y] = MISSION_TYPE_UNKNOWN;
-    }
-
-    public static MapLocation getClosestMission() {
-        MapLocation curLoc = RobotPlayer.rc.getLocation();
-
-        int closestDist = Integer.MAX_VALUE;
-        MapLocation missionSectionLoc = null;
-        for (int i = MAX_NUM_MISSIONS - 1; i >= 0; i--) {
-            MapLocation sectionLoc = missionList[i];
-            if (sectionLoc == null || sectionMissionInfo[sectionLoc.x][sectionLoc.y] == MISSION_TYPE_UNKNOWN) continue;
-            MapLocation sectionCenterLoc = getSectionCenterLoc(sectionLoc);
-            if (curLoc.isWithinDistanceSquared(sectionCenterLoc, closestDist - 1)) {
-                closestDist = curLoc.distanceSquaredTo(sectionCenterLoc);
-                missionSectionLoc = sectionLoc;
-            }
-        }
-
-        return missionSectionLoc;
-    }
-
-    private static boolean isMissionTypeRelevant(int missionType) {
-        switch (missionType) {
-            case MISSION_TYPE_SLEUTH:
-            case MISSION_TYPE_SCOUT:
-            case MISSION_TYPE_STICK:
-                return RobotPlayer.rc.getType() == RobotType.MUCKRAKER;
-            case MISSION_TYPE_DEMUCK:
-                return RobotPlayer.rc.getType() == RobotType.POLITICIAN && RobotPlayer.rc.getInfluence() <= Politician.DEMUCK_INF; 
-            case MISSION_TYPE_SIEGE:
-                return RobotPlayer.rc.getType() == RobotType.POLITICIAN && RobotPlayer.rc.getInfluence() > Politician.DEMUCK_INF;;
-            case MISSION_TYPE_HIDE:
-                return RobotPlayer.rc.getType() == RobotType.SLANDERER;
-            default:
-                return false;
-        }
-    }
 
     // Utilities
 
