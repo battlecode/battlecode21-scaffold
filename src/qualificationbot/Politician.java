@@ -17,13 +17,16 @@ public class Politician {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
-            Communication.updateSectionMissionInfo();
-            if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
-                missionSectionLoc = Communication.getClosestMission();
-                if (missionSectionLoc != null) {
-                    missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
-                }
+            if(siegeBot){
+                Communication.updateSectionMissionInfo();
+                if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
+                    missionSectionLoc = Communication.getClosestMission();
+                    if (missionSectionLoc != null) {
+                        missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
+                    }
             }
+
+            } 
             executeTurn(turn++);            
             Clock.yield();
         }
@@ -35,21 +38,11 @@ public class Politician {
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        
+        if(!siegeBot) defend(); 
+        else {
         MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
         boolean missionComplete = false;
-        switch(missionType) { 
-            case MISSION_TYPE_DEMUCK: 
-                missionComplete = huntMuck(targetLoc); 
-                break;
-            case MISSION_TYPE_SIEGE: 
-                missionComplete = siegeEC(targetLoc); 
-                break; 
-            case MISSION_TYPE_UNKNOWN: 
-                missionComplete = defend(); 
-                break; 
-        }
-      
+        missionComplete = siegeEC(targetLoc)
        
         if (missionComplete) {
             Communication.setMissionComplete(missionSectionLoc);
@@ -57,28 +50,8 @@ public class Politician {
             missionSectionLoc = null;
         }
     }
-    private static boolean defend() {
-        if(!siegeBot) {
-            muckCount = 0; 
-            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(9);
-            for(int i = nearbyRobots.length - 1; i >= 0; i--) {
-                RobotInfo robot = nearbyRobots[i]; 
-                if(robot.getTeam() != rc.getTeam() && robot.getType() == RobotType.MUCKRAKER) {
-                    muckCount++;
-                    if(muckCount > 2) {
-                        if(rc.canEmpower(9)) {
-                            rc.empower(9); 
-                        }
-                    } 
-                }
-            }
-            
-        }
-        return true; 
-        
-
-
     }
+    
     private static boolean siegeEC(MapLocation loc) throws GameActionException {
         // have not yet identified ec to destroy
         if(trackedEC == -1) {
@@ -114,7 +87,8 @@ public class Politician {
 
     // hunt for a muck defensively at a given location
     // return false if a muck is not found
-    public static boolean huntMuck(MapLocation loc) throws GameActionException {
+    public static boolean defend() throws GameActionException {
+        
         int closestMuckDist = Integer.MAX_VALUE;
         MapLocation closestMuckLoc = null;
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
@@ -135,7 +109,7 @@ public class Politician {
                 return false;
             }
         } else {
-            Pathfinding3.moveTo(loc);
+            Pathfinding3.moveTo(randomSectionLoc)
             return inMissionSection();
         }
     }

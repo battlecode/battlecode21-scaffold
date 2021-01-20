@@ -214,7 +214,6 @@ public class Communication {
     }
 
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
-<<<<<<< HEAD
         sectionMissionInfo[sectionLoc.x][sectionLoc.y] = missionType;
         int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
         // if (missionType == MISSION_TYPE_STICK) {
@@ -264,10 +263,6 @@ public class Communication {
             default:
                 return false;
         }
-=======
-        int missionSectionNum = sectionLoc == null ? NO_MISSION_AVAILABLE : sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
-        RobotPlayer.rc.setFlag(missionType | (missionSectionNum << 2));
->>>>>>> 9bb14af7b66d093fe08657193938202890033538
     }
 
     // Utilities
