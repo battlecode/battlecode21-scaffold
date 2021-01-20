@@ -13,6 +13,8 @@ public class EnlightenmentCenter {
     static int slanderersBuilt; 
     static int politiciansBuilt; 
 
+    static int missionType = Communication.MISSION_TYPE_UNKNOWN;
+
     static RobotController rc;
 
     public static void run() throws GameActionException {
@@ -83,60 +85,30 @@ public class EnlightenmentCenter {
         return false;
     }
 
-    private static boolean sendMission() throws GameActionException {
-        Team enemyTeam = rc.getTeam().opponent();
-        MapLocation curLoc = rc.getLocation();
-        int roundNum = rc.getRoundNum();
+    private static void sendMission() throws GameActionException {
+        // TODO add hide missions
 
-        int closestSquaredDist = Integer.MAX_VALUE;
-        MapLocation closestSectionLoc = null;
-        for (int i = Communication.MAX_NUM_SECTIONS_WITH_ROBOTS - 1; i >= 0; i--) {
-            MapLocation sectionLoc = Communication.sectionsWithRobots[i];
-            if (sectionLoc == null) continue;
-
-            boolean isPotentialMissionSection;
-            switch ((roundNum % 6) + 1) {
-                case Communication.MISSION_TYPE_SLEUTH:
-                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.SLANDERER);
-                    // isPotentialMissionSection = false;
-                    break;
-                case Communication.MISSION_TYPE_STICK:
-                    // isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.POLITICIAN);
-                    isPotentialMissionSection = false;
-                    break;
-                case Communication.MISSION_TYPE_SIEGE:
-                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.ENLIGHTENMENT_CENTER) ||
-                                                Communication.isRobotTeamAndTypeInSection(sectionLoc, Team.NEUTRAL, RobotType.ENLIGHTENMENT_CENTER);
-                    break;
-                case Communication.MISSION_TYPE_SCOUT:
-                    // TODO add scouting missions
-                    isPotentialMissionSection = false;
-                    break;
-                case Communication.MISSION_TYPE_DEMUCK:
-                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.MUCKRAKER);
-                    // isPotentialMissionSection = false;
-                    break;
-                case Communication.MISSION_TYPE_HIDE:
-                    isPotentialMissionSection = !sectionLoc.equals(Communication.getCurrentSection()) && Communication.sectionOnEdge[sectionLoc.x][sectionLoc.y];
-                    break;
-                default:
-                    isPotentialMissionSection = false;
-                    break;
-            }
-
-            if (isPotentialMissionSection) {
-                MapLocation sectionCenterLoc = Communication.getSectionCenterLoc(sectionLoc);
-                if (curLoc.isWithinDistanceSquared(sectionCenterLoc, closestSquaredDist - 1)) {
-                    closestSectionLoc = sectionLoc;
-                    closestSquaredDist = curLoc.distanceSquaredTo(sectionCenterLoc);
-                }
-            }
+        RobotType targetRobotType;
+        switch (missionType) {
+            case Communication.MISSION_TYPE_SLEUTH:
+                targetRobotType = RobotType.SLANDERER;
+                break;
+            case Communication.MISSION_TYPE_SIEGE:
+                targetRobotType = RobotType.ENLIGHTENMENT_CENTER;
+                break;
+            default:
+                targetRobotType = null;
+                break;
         }
 
-        if (closestSectionLoc != null) {
-            Communication.sendMissionInfo(closestSectionLoc, (roundNum % 6) + 1);
-            return true;
+        if (targetRobotType == null) return;
+
+        MapLocation targetSection = Communication.getClosestSectionWithType(targetRobotType);
+        Communication.sendMissionInfo(targetSection, missionType);
+
+        missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
+        if (missionType == 0) {
+            missionType++;
         }
-        return false;
     }
 }
