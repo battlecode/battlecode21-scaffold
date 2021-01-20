@@ -2,19 +2,10 @@ package qualificationbot;
 import battlecode.common.*;
 
 public class ScoutingMuckraker {
-    static final int EXPOSE_RADIUS = 12; 
-    static final int MAX_SENSE_RADIUS = 30; 
-
+    static final int EXPOSE_RADIUS = 12;
     static final int BIG_UNIT_MIN_INFLUENCE = 50;
 
     static RobotController rc;
-    static MapLocation startLoc;
-
-    static int foundPoli = -1; 
-    
-    static int missionType;
-    static MapLocation missionSectionLoc; 
-
 
     public static void run() throws GameActionException {
         int turn = 0;
