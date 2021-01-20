@@ -89,7 +89,7 @@ public class ReceiverCommunication {
                     (moddedLocation.x << 8) | // x coord
                     (moddedLocation.y << 16); // y coord
 
-        System.out.println("bytes used: " + Clock.getBytecodeNum());
+        // System.out.println("bytes used: " + Clock.getBytecodeNum());
     }
 
     public static void sendFlag() throws GameActionException {

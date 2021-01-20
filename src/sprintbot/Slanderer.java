@@ -15,6 +15,12 @@ public class Slanderer {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
+            if (rc.getType() == RobotType.POLITICIAN) {
+                Pathfinding3.moveTo(startLoc);
+                if (rc.getLocation().equals(startLoc) && rc.canEmpower(2)) {
+                    rc.empower(2);
+                }
+            }
             Communication.updateIDList(false);
             Communication.updateSectionMissionInfo();
             if (missionType == Communication.MISSION_TYPE_UNKNOWN) {

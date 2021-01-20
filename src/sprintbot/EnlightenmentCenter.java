@@ -7,7 +7,7 @@ public class EnlightenmentCenter {
     static final int POLITICIAN_INFLUENCE = 50;
     static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
     static final int MAX_SLANDERER_INFLUENCE = 949;
-    public static final double[] BID_PERCENTAGES = new double[] {.05, .1, .125, .15, .2};
+    public static final double[] BID_PERCENTAGES = new double[] {.005, .0075, .02, .04, .08};
     static final int NUM_ROUNDS = 1500;
 
     static int slanderersBuilt; 
@@ -52,21 +52,21 @@ public class EnlightenmentCenter {
         int turnCount = RobotPlayer.rc.getRoundNum();
 
         //build a slanderer every 50 turns with half influence, up to MAX_SLANDERER_INFLUENCE
-        if (slanderersBuilt <= turnCount / 50) { 
+        if (slanderersBuilt <= turnCount / 30) { 
             int influence = Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() / 2);
             if (buildRobot(RobotType.SLANDERER, influence)) {
                 slanderersBuilt++;
             }
         }
         //build a politician every 20 turns with 20% of our influence. 
-        else if (politiciansBuilt <= turnCount / 20) {
-            int influence = rc.getInfluence() / 5; 
+        else if (politiciansBuilt <= turnCount / 50) {
+            int influence = rc.getInfluence() / 4; 
             if (buildRobot(RobotType.POLITICIAN, influence)) {
                 politiciansBuilt++; 
             }
         }
         //if we are not building a slanderer or poli we should always be producing muckrakers. 
-        else {
+        else if (turnCount % 3 == 0) {
             buildRobot(RobotType.MUCKRAKER, 1);
         }
     }
@@ -98,9 +98,11 @@ public class EnlightenmentCenter {
             switch ((roundNum % 6) + 1) {
                 case Communication.MISSION_TYPE_SLEUTH:
                     isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.SLANDERER);
+                    // isPotentialMissionSection = false;
                     break;
                 case Communication.MISSION_TYPE_STICK:
-                    isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.POLITICIAN);
+                    // isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.POLITICIAN);
+                    isPotentialMissionSection = false;
                     break;
                 case Communication.MISSION_TYPE_SIEGE:
                     isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.ENLIGHTENMENT_CENTER) ||
@@ -112,9 +114,10 @@ public class EnlightenmentCenter {
                     break;
                 case Communication.MISSION_TYPE_DEMUCK:
                     isPotentialMissionSection = Communication.isRobotTeamAndTypeInSection(sectionLoc, enemyTeam, RobotType.MUCKRAKER);
+                    // isPotentialMissionSection = false;
                     break;
                 case Communication.MISSION_TYPE_HIDE:
-                    isPotentialMissionSection = Communication.sectionOnEdge[sectionLoc.x][sectionLoc.y];
+                    isPotentialMissionSection = !sectionLoc.equals(Communication.getCurrentSection()) && Communication.sectionOnEdge[sectionLoc.x][sectionLoc.y];
                     break;
                 default:
                     isPotentialMissionSection = false;

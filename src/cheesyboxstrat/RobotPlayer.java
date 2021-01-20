@@ -160,7 +160,7 @@ public strictfp class RobotPlayer {
         }
 
         if (insideBox && rc.canMove(boxSide)) {
-            System.out.println("HERE");
+            // System.out.println("HERE");
             rc.move(boxSide);
         }
     }

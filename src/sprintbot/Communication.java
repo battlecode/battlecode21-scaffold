@@ -237,13 +237,13 @@ public class Communication {
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
         sectionMissionInfo[sectionLoc.x][sectionLoc.y] = missionType;
         int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
-        if (missionType == MISSION_TYPE_STICK) {
-            System.out.println("SENDING STICK MISSION at " + sectionLoc);
-        } else if (missionType == MISSION_TYPE_SLEUTH) {
-            System.out.println("SENDING SLEUTH MISSION at " + sectionLoc);
-        } else if (missionType == MISSION_TYPE_SCOUT) {
-            System.out.println("SENDING SCOUT MISSION at " + sectionLoc);
-        }
+        // if (missionType == MISSION_TYPE_STICK) {
+        //     // System.out.println("SENDING STICK MISSION at " + sectionLoc);
+        // } else if (missionType == MISSION_TYPE_SLEUTH) {
+        //     System.out.println("SENDING SLEUTH MISSION at " + sectionLoc);
+        // } else if (missionType == MISSION_TYPE_SCOUT) {
+        //     System.out.println("SENDING SCOUT MISSION at " + sectionLoc);
+        // }
         RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
     }
 
