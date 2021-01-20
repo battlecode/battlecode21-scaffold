@@ -66,7 +66,7 @@ public class Muckraker {
     }
 
     private static boolean scouting(MapLocation loc) throws GameActionException {
-        if(!rc.getLocation().equals(loc)) {
+        if(!inMissionSection()) {
             Pathfinding3.moveTo(loc); 
             return false; 
         }
@@ -76,7 +76,7 @@ public class Muckraker {
     
     }
     private static boolean huntSlanderer(MapLocation loc) throws GameActionException {
-        if(rc.getLocation().compareTo(loc) != 0) {
+        if(!inMissionSection()) {
             Pathfinding3.moveTo(loc);
             if(rc.getRoundNum() % 3 == 0) {
                 senseAndExpose(); 

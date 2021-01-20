@@ -266,8 +266,9 @@ public class Communication {
             case MISSION_TYPE_STICK:
                 return RobotPlayer.rc.getType() == RobotType.MUCKRAKER;
             case MISSION_TYPE_DEMUCK:
+                return RobotPlayer.rc.getType() == RobotType.POLITICIAN && RobotPlayer.rc.getInfluence() <= Politician.DEMUCK_INF; 
             case MISSION_TYPE_SIEGE:
-                return RobotPlayer.rc.getType() == RobotType.POLITICIAN;
+                return RobotPlayer.rc.getType() == RobotType.POLITICIAN && RobotPlayer.rc.getInfluence() > Politician.DEMUCK_INF;;
             case MISSION_TYPE_HIDE:
                 return RobotPlayer.rc.getType() == RobotType.SLANDERER;
             default:
