@@ -41,6 +41,12 @@ public class ScoutingMuckraker {
                         closestTarget = ri;
                     }
                     break;
+                case ENLIGHTENMENT_CENTER:
+                    if (ri.getTeam() != Team.NEUTRAL &&
+                        Pathfinding3.getOpenAdjacentLoc(ri.getLocation()) != null) {
+                        closestTarget = ri;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -56,11 +62,12 @@ public class ScoutingMuckraker {
             // for slanderers, expose if possible and otherwise just move to
             case SLANDERER:
                 if (rc.canExpose(closestTarget.getID())) {
-                    rc.expose(rc.getID());
+                    rc.expose(closestTarget.getID());
                 } else {
                     Pathfinding3.moveTo(closestTarget.getLocation());
                 }
                 break;
+            case ENLIGHTENMENT_CENTER:
             case MUCKRAKER:
             case POLITICIAN:
                 Pathfinding3.stickToTarget(closestTarget.getLocation());

@@ -28,6 +28,7 @@ public class Communication {
                         friendlyECID = id;
                     }
                     break;
+                case POLITICIAN:
                 case MUCKRAKER:
                     // only ec's care about muckrakers
                     if (isEnlightenmentCenter && !friendlyMuckrakerAdded[id % MAX_ID]) {
@@ -94,16 +95,18 @@ public class Communication {
                 int flag = RobotPlayer.rc.getFlag(friendlyMuckrakerIDs[i]);
                 int sectionLocNum       = flag & 0x3FF;     // first 10 bits
                 int sectionOnEdgeNum    = flag >> 10 & 0x1; // next 1 bit
-                int sectionInfo         = flag >> 11;       // next 4 bits
+                int sectionInfo         = flag >> 11 & 0xF; // next 4 bits
                 int ecInfluenceInfo     = flag >> 15;       // last 9 bits
                 int sectionX = sectionLocNum % NUM_SECTIONS;
                 int sectionY = sectionLocNum / NUM_SECTIONS;
-                sectionsWithRobots[sectionsWithRobotsIdx] = new MapLocation(sectionX, sectionY);
-                sectionsWithRobotsIdx++;
+                if (!inSectionsWithRobotsList[sectionX][sectionY]) {
+                    sectionsWithRobots[sectionsWithRobotsIdx] = new MapLocation(sectionX, sectionY);
+                    sectionsWithRobotsIdx++;
+                    inSectionsWithRobotsList[sectionX][sectionY] = true;
+                }
                 sectionRobotInfo[sectionX][sectionY] = sectionInfo;
                 sectionOnEdge[sectionX][sectionY] = sectionOnEdgeNum == 1;
                 ecInfluence[sectionX][sectionY] = ecInfluenceInfo * EC_INFLUENCE_SCALE;
-                inSectionsWithRobotsList[sectionX][sectionY] = true;
             }
         }
     }
@@ -130,7 +133,7 @@ public class Communication {
                 int idx = getTypeNum(sensedRobots[i].getType());
                 sectionRobotInfo |= (1 << idx);
                 if (sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
-                    ecInfluenceInfo = Math.min(sensedRobots[i].getInfluence(), MAX_EC_INFLUENCE_STORED) / 50;
+                    ecInfluenceInfo = ((Math.min(sensedRobots[i].getInfluence(), MAX_EC_INFLUENCE_STORED) - 1) / 50 + 1);
                 }
             }
         }
@@ -213,7 +216,8 @@ public class Communication {
     }
 
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
-        int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5);
+        int sectionLocNum = sectionLoc == null ? NO_MISSION_AVAILABLE : sectionLoc.x | (sectionLoc.y << 5);
+        latestMissionSectionLoc[missionType] = sectionLoc;
         RobotPlayer.rc.setFlag(missionType | (sectionLocNum << 2));
     }
 

@@ -39,7 +39,7 @@ public class SleuthingMuckraker {
         // if one is found, move to and expose it, otherwise search using mission location
         if (closestTarget != null) {
             if (rc.canExpose(closestTarget.getID())) {
-                rc.expose(rc.getID());
+                rc.expose(closestTarget.getID());
             } else {
                 Pathfinding3.moveTo(closestTarget.getLocation());
             }

@@ -15,6 +15,7 @@ public class Politician {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
+            Communication.sendSectionInfo();
             if(siegeBot){
                 Communication.updateSectionMissionInfo();
             }
@@ -89,8 +90,8 @@ public class Politician {
         }
 
         if (closestTarget != null) {
-            if (rc.canEmpower(closestTarget.getID())) {
-                rc.empower(closestTarget.getID());
+            if (closestDist <= 2 && rc.canEmpower(9)){
+                rc.empower(9);
             } else {
                 Pathfinding3.moveTo(closestTarget.getLocation());
             }

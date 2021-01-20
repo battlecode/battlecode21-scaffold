@@ -5,9 +5,9 @@ public class EnlightenmentCenter {
 
     static final int MUCKRAKER_INFLUENCE = 1;
     static final int POLITICIAN_INFLUENCE = 50;
-    static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.1;
+    static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.5;
     static final int MAX_SLANDERER_INFLUENCE = 949;
-    public static final double[] BID_PERCENTAGES = new double[] {.005, .0075, .02, .04, .08};
+    public static final double[] BID_PERCENTAGES = new double[] {.007, .014, .025, .05, .2};
     static final int NUM_ROUNDS = 1500;
 
     static int slanderersBuilt; 
@@ -50,27 +50,53 @@ public class EnlightenmentCenter {
     
     }
 
-    private static void buildRobot() throws GameActionException {
-        int turnCount = RobotPlayer.rc.getRoundNum();
+    static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 15;
+    static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 10;
+    static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 50;
+    
+    static final int ROUNDS_BETWEEN_SLANDERERS = 20;
 
-        //build a slanderer every 50 turns with half influence, up to MAX_SLANDERER_INFLUENCE
-        if (slanderersBuilt <= turnCount / 30) { 
-            int influence = Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() / 2);
-            if (buildRobot(RobotType.SLANDERER, influence)) {
-                slanderersBuilt++;
+    static final int SLEUTHING_MUCKRAKER_INFLUENCE = 100;
+    static final int DEMUCKING_POLITICIAN_INFLUENCE = Politician.DEMUCK_INF;
+
+    static int lastRoundBuiltSiegePolitician = -ROUNDS_BETWEEN_SIEGE_POLITICIANS;
+    static int lastRoundBuiltDemuckPolitician = -ROUNDS_BETWEEN_DEMUCKING_POLITICIANS;
+    static int lastRoundBuiltSleuthingMuckraker = -ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS;
+    static int lastRoundBuiltSlanderer = -ROUNDS_BETWEEN_SLANDERERS;
+
+    private static void buildRobot() throws GameActionException {
+        int roundNum = rc.getRoundNum();
+
+        MapLocation siegeSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
+        if (siegeSectionLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
+            int ecInfluence = Communication.ecInfluence[siegeSectionLoc.x][siegeSectionLoc.y];
+            if (buildRobot(RobotType.POLITICIAN, ecInfluence * 2)) {
+                lastRoundBuiltSiegePolitician = roundNum;
+                return;
             }
         }
-        //build a politician every 20 turns with 20% of our influence. 
-        else if (politiciansBuilt <= turnCount / 50) {
-            int influence = rc.getInfluence() / 4; 
-            if (buildRobot(RobotType.POLITICIAN, influence)) {
-                politiciansBuilt++; 
+
+        MapLocation sleuthSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH];
+        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
+            if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
+                lastRoundBuiltSleuthingMuckraker = roundNum;
+                return;
             }
         }
-        //if we are not building a slanderer or poli we should always be producing muckrakers. 
-        else if (turnCount % 3 == 0) {
-            buildRobot(RobotType.MUCKRAKER, 1);
+
+        if (roundNum - lastRoundBuiltSlanderer > ROUNDS_BETWEEN_SLANDERERS &&
+            buildRobot(RobotType.SLANDERER, (int)Math.min(MAX_SLANDERER_INFLUENCE, rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE))) {
+            lastRoundBuiltSlanderer = roundNum;
+            return;
         }
+
+        if (roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
+            buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE)) {
+            lastRoundBuiltDemuckPolitician = roundNum;
+            return;
+        }
+
+        buildRobot(RobotType.MUCKRAKER, 1);
     }
 
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
@@ -86,6 +112,11 @@ public class EnlightenmentCenter {
     }
 
     private static void sendMission() throws GameActionException {
+        missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
+        if (missionType == 0) {
+            missionType++;
+        }
+
         // TODO add hide missions
 
         RobotType targetRobotType;
@@ -105,10 +136,5 @@ public class EnlightenmentCenter {
 
         MapLocation targetSection = Communication.getClosestSectionWithType(targetRobotType);
         Communication.sendMissionInfo(targetSection, missionType);
-
-        missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
-        if (missionType == 0) {
-            missionType++;
-        }
     }
 }

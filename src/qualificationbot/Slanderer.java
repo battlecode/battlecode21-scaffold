@@ -6,9 +6,6 @@ public class Slanderer {
 
     static RobotController rc;
     static MapLocation startLoc;
-
-    static MapLocation missionSectionLoc;
-    static int missionType;
     
     public static void run() throws GameActionException {
         int turn = 0;
@@ -22,12 +19,6 @@ public class Slanderer {
                 }
             }
             Communication.updateSectionMissionInfo();
-            if (missionType == Communication.MISSION_TYPE_UNKNOWN) {
-                missionSectionLoc = Communication.getClosestMission();
-                if (missionSectionLoc != null) {
-                    missionType = Communication.sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y];
-                }
-            }
             executeTurn(turn++);
             Clock.yield();
         }
@@ -39,16 +30,17 @@ public class Slanderer {
     }
     
     public static void executeTurn(int turnNumber) throws GameActionException {
-        MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
+        // MapLocation targetLoc = missionSectionLoc != null ? Communication.getSectionCenterLoc(missionSectionLoc) : null;
 
-        switch (missionType) {
-            case Communication.MISSION_TYPE_HIDE:
-                hideAtLocation(targetLoc);
-                break;
-            default:
-                roamCloseToStart();
-                break;
-        }
+        // switch (missionType) {
+        //     case Communication.MISSION_TYPE_HIDE:
+        //         hideAtLocation(targetLoc);
+        //         break;
+        //     default:
+        //         roamCloseToStart();
+        //         break;
+        // }
+        roamCloseToStart();
     }
 
     private static void roamCloseToStart() throws GameActionException {

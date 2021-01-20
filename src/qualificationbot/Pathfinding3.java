@@ -44,7 +44,7 @@ public class Pathfinding3 {
         }
     }
 
-    public static MapLocation getOpenAdjacentLoc(MapLocation loc) {
+    public static MapLocation getOpenAdjacentLoc(MapLocation loc) throws GameActionException {
         MapLocation curLoc = RobotPlayer.rc.getLocation();
         if (curLoc.isWithinDistanceSquared(loc, 2)) {
             return curLoc;
