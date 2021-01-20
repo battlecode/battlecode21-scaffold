@@ -60,7 +60,8 @@ public class Communication {
     static boolean[][] sectionOnEdge = new boolean[NUM_SECTIONS][NUM_SECTIONS];
     static int[][] ecInfluence = new int[NUM_SECTIONS][NUM_SECTIONS];
 
-    static final int EC_INFLUENCE_SCALE = 50; 
+    static final int EC_INFLUENCE_SCALE = 50;
+    static final int MAX_EC_INFLUENCE_STORED = 25550;
 
     static final int MAX_NUM_SECTIONS_WITH_ROBOTS = 300;
     static MapLocation[] sectionsWithRobots = new MapLocation[MAX_NUM_SECTIONS_WITH_ROBOTS];
@@ -71,6 +72,21 @@ public class Communication {
     static final int TYPE_MUCKRAKER = 1;
     static final int TYPE_POLITICIAN = 2;
     static final int TYPE_SLANDERER = 3;
+
+    public static MapLocation getClosestSectionWithType(RobotType type) {
+        MapLocation robotLoc = RobotPlayer.rc.getLocation();
+        int closestDist = Integer.MAX_VALUE;
+        MapLocation closestSectionLocation = null;
+        for (int i = sectionsWithRobotsIdx - 1; i >= 0; i--) {
+            MapLocation sectionCenterLoc = getSectionCenterLoc(sectionsWithRobots[i]);
+            if (isTypeInSection(sectionsWithRobots[i], type) && 
+                sectionCenterLoc.isWithinDistanceSquared(robotLoc, closestDist - 1)) {
+                closestSectionLocation = sectionsWithRobots[i];
+                closestDist = sectionCenterLoc.distanceSquaredTo(robotLoc);
+            }
+        }
+        return closestSectionLocation;
+    }
 
     // called by ec, uses muckraker flags to get section info
     public static void updateSectionRobotInfo() throws GameActionException {
@@ -102,20 +118,28 @@ public class Communication {
 
         int sectionOnEdgeNum = curSectionOnEdge() ? 1 : 0;
 
-        int friendlyMuckrakerIdx = getRobotTeamAndTypeIndex(RobotPlayer.rc.getTeam(), RobotType.MUCKRAKER);
-        int sectionInfo = (1 << friendlyMuckrakerIdx);
+        int sectionRobotInfo = 0;
+        int ecInfluenceInfo = 0;
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots(MAX_SECTION_RANGE);
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
+            if (sensedRobots[i].getTeam() == RobotPlayer.rc.getTeam()) continue;
+
             MapLocation loc = sensedRobots[i].getLocation();
             // check if in section
             if ((loc.x % MAP_SIZE) / SECTION_SIZE == sectionX && (loc.y % MAP_SIZE) / SECTION_SIZE == sectionY) {
                 // add robot team and type info to section num
-                int idx = getRobotTeamAndTypeIndex(sensedRobots[i].getTeam(), sensedRobots[i].getType());
-                sectionInfo |= (1 << idx);
+                int idx = getTypeNum(sensedRobots[i].getType());
+                sectionRobotInfo |= (1 << idx);
+                if (sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
+                    ecInfluenceInfo = Math.min(sensedRobots[i].getInfluence(), MAX_EC_INFLUENCE_STORED) / 50;
+                }
             }
         }
 
-        RobotPlayer.rc.setFlag(sectionLocNum | (sectionOnEdgeNum << 10) | (sectionInfo << 11));
+        RobotPlayer.rc.setFlag(sectionLocNum |
+                              (sectionOnEdgeNum << 10) |
+                              (sectionRobotInfo << 11) |
+                              (ecInfluenceInfo << 15));
     }
 
     // return the actual center location of a given section
@@ -132,29 +156,9 @@ public class Communication {
         return new MapLocation(sectionX, sectionY);
     }
 
-    public static boolean isRobotTeamAndTypeInSection(MapLocation sectionLoc, Team team, RobotType type) {
-        int sectionInfo = sectionRobotInfo[sectionLoc.x][sectionLoc.y];
-        int idx = getRobotTeamAndTypeIndex(team, type);
-        return (sectionInfo & (1 << idx)) != 0;
-    }
-
-    private static int getRobotTeamAndTypeIndex(Team team, RobotType type) {
-        int teamNum = getTeamNum(team);
-        int typeNum = getTypeNum(type);
-        return teamNum * 4 + typeNum; // max of 8 (neutral ec)
-    }
-
-    private static int getTeamNum(Team team) {
-        switch (team) {
-            case A:
-                return TEAM_A;
-            case B:
-                return TEAM_B;
-            case NEUTRAL:
-                return TEAM_NEUTRAL;
-            default:
-                return -1;
-        }
+    public static boolean isTypeInSection(MapLocation sectionLoc, RobotType type) {
+        int idx = getTypeNum(type);
+        return (sectionRobotInfo[sectionLoc.x][sectionLoc.y] & (1 << idx)) != 0;
     }
 
     private static int getTypeNum(RobotType type) {
@@ -183,96 +187,35 @@ public class Communication {
 
     // Section Mission Info
     
-    // mission types - should have no more than 16
+    static int NUM_MISSION_TYPES = 4;
+
+    // mission types
     static final int MISSION_TYPE_UNKNOWN = 0;
-    
-    // Muckraker Missions
     static final int MISSION_TYPE_SLEUTH = 1; // search for and kill slanderer
-    static final int MISSION_TYPE_STICK = 2;  // stick to a politician
-    static final int MISSION_TYPE_SCOUT = 3;  // get section info
+    static final int MISSION_TYPE_SIEGE = 2;  // attack EC
+    static final int MISSION_TYPE_HIDE = 3;   // hide slanderer
 
-    // Politician Missions
-    static final int MISSION_TYPE_SIEGE = 4;  // attack EC
-    static final int MISSION_TYPE_DEMUCK = 5; // kill muckraker
+    static final int NO_MISSION_AVAILABLE = 1 << 10;
 
-    // Slanderer Missions
-    static final int MISSION_TYPE_HIDE = 6;   // hide slanderer
-
-    static final int MAX_NUM_MISSIONS = 50;
-
-    static int[][] sectionMissionInfo = new int[NUM_SECTIONS][NUM_SECTIONS];
-    static MapLocation[] missionList = new MapLocation[MAX_NUM_MISSIONS];
-    static int missionListIdx = 0;
+    static MapLocation[] latestMissionSectionLoc = new MapLocation[NUM_MISSION_TYPES];
 
     // called by any non-ec unit, uses ec flags to get mission info
     public static void updateSectionMissionInfo() throws GameActionException {
-        for (int i = MAX_NUM_FRIENDLY_ECS - 1; i >= 0; --i) {
-            if (friendlyEnlighenmentCenterIDs[i] != 0 && RobotPlayer.rc.canGetFlag(friendlyEnlighenmentCenterIDs[i])) {
-                int flag = RobotPlayer.rc.getFlag(friendlyEnlighenmentCenterIDs[i]);
-                int sectionLocNum   = flag & 0x3FF; // first 10 bits
-                int sectionInfo     = flag >> 10; // last 14 bits (only 4 used)
-                // if (sectionInfo == MISSION_TYPE_DEMUCK) {
-                //     System.out.println("RECEIVED DEMUCK MESSAGE");
-                // }
-                if (!isMissionTypeRelevant(sectionInfo)) continue;
-                int sectionX = sectionLocNum % NUM_SECTIONS;
-                int sectionY = sectionLocNum / NUM_SECTIONS;
-                sectionMissionInfo[sectionX][sectionY] = sectionInfo;
-                missionList[missionListIdx] = new MapLocation(sectionX, sectionY);
-                missionListIdx = (missionListIdx + 1) % MAX_NUM_MISSIONS;
+        if (RobotPlayer.rc.canGetFlag(friendlyECID)) {
+            int flag = RobotPlayer.rc.getFlag(friendlyECID);
+
+            int missionType         = flag & 0x3;   // first 2 bits (only 2 used)
+            int missionSectionNum   = flag >> 2;    // last 22 bits (only 10 used unless sending a no mission available message)
+            latestMissionSectionLoc[missionType] = null;
+            if (missionSectionNum != NO_MISSION_AVAILABLE) {
+                latestMissionSectionLoc[missionType] = new MapLocation(missionSectionNum % NUM_SECTIONS, missionSectionNum / NUM_SECTIONS);
             }
         }
     }
 
     public static void sendMissionInfo(MapLocation sectionLoc, int missionType) throws GameActionException {
-        sectionMissionInfo[sectionLoc.x][sectionLoc.y] = missionType;
-        int sectionLocNum = sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
-        // if (missionType == MISSION_TYPE_STICK) {
-        //     // System.out.println("SENDING STICK MISSION at " + sectionLoc);
-        // } else if (missionType == MISSION_TYPE_SLEUTH) {
-        //     System.out.println("SENDING SLEUTH MISSION at " + sectionLoc);
-        // } else if (missionType == MISSION_TYPE_SCOUT) {
-        //     System.out.println("SENDING SCOUT MISSION at " + sectionLoc);
-        // }
-        RobotPlayer.rc.setFlag(sectionLocNum | (missionType << 10));
-    }
-
-    public static void setMissionComplete(MapLocation missionSectionLoc) {
-        sectionMissionInfo[missionSectionLoc.x][missionSectionLoc.y] = MISSION_TYPE_UNKNOWN;
-    }
-
-    public static MapLocation getClosestMission() {
-        MapLocation curLoc = RobotPlayer.rc.getLocation();
-
-        int closestDist = Integer.MAX_VALUE;
-        MapLocation missionSectionLoc = null;
-        for (int i = MAX_NUM_MISSIONS - 1; i >= 0; i--) {
-            MapLocation sectionLoc = missionList[i];
-            if (sectionLoc == null || sectionMissionInfo[sectionLoc.x][sectionLoc.y] == MISSION_TYPE_UNKNOWN) continue;
-            MapLocation sectionCenterLoc = getSectionCenterLoc(sectionLoc);
-            if (curLoc.isWithinDistanceSquared(sectionCenterLoc, closestDist - 1)) {
-                closestDist = curLoc.distanceSquaredTo(sectionCenterLoc);
-                missionSectionLoc = sectionLoc;
-            }
-        }
-
-        return missionSectionLoc;
-    }
-
-    private static boolean isMissionTypeRelevant(int missionType) {
-        switch (missionType) {
-            case MISSION_TYPE_SLEUTH:
-            case MISSION_TYPE_SCOUT:
-            case MISSION_TYPE_STICK:
-                return RobotPlayer.rc.getType() == RobotType.MUCKRAKER;
-            case MISSION_TYPE_DEMUCK:
-            case MISSION_TYPE_SIEGE:
-                return RobotPlayer.rc.getType() == RobotType.POLITICIAN;
-            case MISSION_TYPE_HIDE:
-                return RobotPlayer.rc.getType() == RobotType.SLANDERER;
-            default:
-                return false;
-        }
+        int missionSectionNum = sectionLoc == null ? NO_MISSION_AVAILABLE : sectionLoc.x | (sectionLoc.y << 5); // first 10 bits
+        RobotPlayer.rc.setFlag(missionType | (missionSectionNum << 2));
     }
 
     // Utilities
