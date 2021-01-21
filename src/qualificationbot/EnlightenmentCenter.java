@@ -100,7 +100,7 @@ public class EnlightenmentCenter {
 
         
 
-        if (roundNum > 100 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
+        if (roundNum > 50 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
             buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE)) {
             lastRoundBuiltDemuckPolitician = roundNum;
             return;
@@ -110,6 +110,16 @@ public class EnlightenmentCenter {
     }
 
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
+        if(type == RobotType.SLANDERER) {
+            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1); 
+            for(int i = nearbyRobots.length - 1; i >= 0; i--) {
+                if(nearbyRobots[i].type == RobotType.MUCKRAKER && nearbyRobots[i].team != rc.getTeam()){ 
+                    buildrobot(RobotType.POLITICIAN, 20); 
+                    return false; 
+                }
+
+            }
+        }
         Direction[] allDirections = Direction.allDirections();
         for (int i = allDirections.length - 1; i >= 0; --i) {
             Direction buildDir = allDirections[i];
