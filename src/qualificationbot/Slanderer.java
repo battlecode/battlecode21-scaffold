@@ -13,10 +13,15 @@ public class Slanderer {
         initialize();
         while (true) {
             if (rc.getType() == RobotType.POLITICIAN) {
-                Pathfinding3.moveTo(startLoc);
-                if (rc.getLocation().equals(startLoc) && rc.canEmpower(2)) {
-                    rc.empower(2);
+                System.out.println("Converted to Poli" + rc.getID()); 
+                while(rc.getEmpowerFactor(rc.getTeam(), 10) > 3) {
+                    Pathfinding3.moveTo(startLoc);
+                    if (rc.getLocation().equals(startLoc) && rc.canEmpower(2)) {
+                        rc.empower(2);
+                    }
                 }
+                Politician.run(); 
+
             }
             Communication.updateSectionMissionInfo();
             executeTurn(turn++);
@@ -40,7 +45,13 @@ public class Slanderer {
         //         roamCloseToStart();
         //         break;
         // }
-        roamCloseToStart();
+        if(turnNumber < 260) {
+            roamCloseToStart();
+        }
+        else {
+            if(rc.getLocation().distanceSquaredTo(startLoc) > 20) Pathfinding3.moveTo(startLoc);
+        }
+        
     }
 
     private static void roamCloseToStart() throws GameActionException {

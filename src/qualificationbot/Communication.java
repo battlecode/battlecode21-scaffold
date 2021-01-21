@@ -15,7 +15,7 @@ public class Communication {
     static int friendlyECID;
 
     // called by all units to update id lists
-    public static void updateIDList(boolean isEnlightenmentCenter) {
+    public static boolean updateIDList(boolean isEnlightenmentCenter) {
         Team friendlyTeam = RobotPlayer.rc.getTeam();
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
@@ -26,8 +26,9 @@ public class Communication {
                     // only non-ec's care about ec's
                     if (!isEnlightenmentCenter) {
                         friendlyECID = id;
+                        return true; 
                     }
-                    break;
+                    
                 case POLITICIAN:
                 case MUCKRAKER:
                     // only ec's care about muckrakers
@@ -40,11 +41,14 @@ public class Communication {
                         friendlyMuckrakerIDs[friendlyMuckrakerIdx] = id;
                         friendlyMuckrakerIdx = (friendlyMuckrakerIdx + 1) % MAX_NUM_FRIENDLY_MUCKRAKERS;
                     }
-                    break;
+                    return true; 
+                    
                 default:
-                    break;
+                    return false; 
+                    
             }
         }
+        return false; 
     }
 
     // Sections

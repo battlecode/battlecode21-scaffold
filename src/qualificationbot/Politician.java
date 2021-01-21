@@ -25,8 +25,10 @@ public class Politician {
     }
 
     public static void initialize() {
-        Communication.updateIDList(false);
-        siegeBot = rc.getInfluence() > DEMUCK_INF; 
+        if(!Communication.updateIDList(false)) {
+            siegeBot = false; 
+        }
+        else siegeBot = rc.getInfluence() > DEMUCK_INF; 
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
@@ -57,8 +59,8 @@ public class Politician {
         if(trackedEC != -1 && rc.canSenseRobot(trackedEC)) {
             // move toward tracked ec
             RobotInfo ec = rc.senseRobot(trackedEC); 
-            if(rc.getLocation().isWithinDistanceSquared(ec.location, 2) && rc.canEmpower(2)) {
-                rc.empower(2);
+            if(rc.getLocation().isWithinDistanceSquared(ec.location, 1) && rc.canEmpower(1)) {
+                rc.empower(1);
             } else if (!Pathfinding3.moveTo(ec.location) && rc.getLocation().isWithinDistanceSquared(ec.location, 9)) {
                 int distSquaredToEC = rc.getLocation().distanceSquaredTo(rc.getLocation());
                 if (rc.canEmpower(distSquaredToEC)) {
