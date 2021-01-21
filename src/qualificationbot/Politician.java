@@ -25,10 +25,8 @@ public class Politician {
     }
 
     public static void initialize() {
-        if(!Communication.updateIDList(false)) {
-            siegeBot = false; 
-        }
-        else siegeBot = rc.getInfluence() > DEMUCK_INF; 
+        Communication.updateIDList(false); 
+        siegeBot = rc.getInfluence() > DEMUCK_INF; 
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {

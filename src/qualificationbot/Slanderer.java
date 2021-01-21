@@ -13,7 +13,7 @@ public class Slanderer {
         initialize();
         while (true) {
             if (rc.getType() == RobotType.POLITICIAN) {
-                System.out.println("Converted to Poli" + rc.getID()); 
+                
                 while(rc.getEmpowerFactor(rc.getTeam(), 10) > 3) {
                     Pathfinding3.moveTo(startLoc);
                     if (rc.getLocation().equals(startLoc) && rc.canEmpower(2)) {

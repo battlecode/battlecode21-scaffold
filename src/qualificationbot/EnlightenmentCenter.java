@@ -114,7 +114,7 @@ public class EnlightenmentCenter {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1); 
             for(int i = nearbyRobots.length - 1; i >= 0; i--) {
                 if(nearbyRobots[i].type == RobotType.MUCKRAKER && nearbyRobots[i].team != rc.getTeam()){ 
-                    buildrobot(RobotType.POLITICIAN, 20); 
+                    buildRobot(RobotType.POLITICIAN, 20); 
                     return false; 
                 }
 
