@@ -33,7 +33,9 @@ public class Politician {
         if(!siegeBot) defend(); 
         else {
             MapLocation missionSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
+            
             if (missionSectionLoc != null) {
+                System.out.println("Siege mission @ " + missionSectionLoc);
                 MapLocation targetLoc = Communication.getSectionCenterLoc(missionSectionLoc);
                 siegeEC(targetLoc);
             } else {
