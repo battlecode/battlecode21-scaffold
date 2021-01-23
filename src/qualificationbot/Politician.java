@@ -28,7 +28,10 @@ public class Politician {
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
-        if(!siegeBot) defend(); 
+        if(!siegeBot) {
+            MapLocation demuckMissionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_DEMUCK);
+            defend(demuckMissionLoc);
+        } 
         else {
             MapLocation siegeMissionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
             MapLocation settleMissionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SETTLE);
@@ -77,10 +80,17 @@ public class Politician {
 
     // hunt for a muck defensively at a given location
     // return false if a muck is not found
-    public static void defend() throws GameActionException {
+    public static void defend(MapLocation targetLoc) throws GameActionException {
         
         // TODO differentiate between big muckrakers and small muckrakers and try to stick to some of them etc
-
+        if(targetLoc == null) {
+            Pathinding3.moveToRandomTarget();
+            return; 
+        }
+        else if(targetLoc.distanceSquaredTo(rc.getLocation()) > 9) {
+            Pathfinding3.moveTo(targetLoc); 
+            return; 
+        }
         int closestDist = Integer.MAX_VALUE;
         RobotInfo closestTarget = null;
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
