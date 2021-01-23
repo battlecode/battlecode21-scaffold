@@ -84,7 +84,7 @@ public class EnlightenmentCenter {
 
         if (attackECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
             int ecInfluence = 0; 
-            if(neutral) ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 1.25; 
+            if(neutral) ecInfluence = (int)(Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 1.25); 
 
             else{
                 ecInfluence = (rc.getInfluence() * .75 >  Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 1.5) ? Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] : (int)(rc.getInfluence() * .1); 
@@ -122,15 +122,15 @@ public class EnlightenmentCenter {
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
         // TODO: use closest units for this instead
         if(type == RobotType.SLANDERER) {
-            if(Communication.getClosestEnemyUnitOfType(ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < 50) {
-                buildRobot(RobotType.POLITICIAN, DEMUCK_INF); 
+            if(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < 50) {
+                buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE); 
                 return false; 
             }
             else {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
                 for(int i = nearbyRobots.length - 1; i >= 0; i--) {
-                    if(nearbyRobots[i].type = RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
-                        buildRobot(RobotType.POLITICIAN, DEMUCK_INF); 
+                    if(nearbyRobots[i].type == RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
+                        buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE); 
                         return false; 
                     }
                 }
