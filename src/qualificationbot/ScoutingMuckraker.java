@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public class ScoutingMuckraker {
     static final int EXPOSE_RADIUS = 12;
-    static final int BIG_UNIT_MIN_INFLUENCE = 50;
+    static final int BIG_UNIT_MIN_INFLUENCE = 100;
 
     static RobotController rc;
 
@@ -12,15 +12,15 @@ public class ScoutingMuckraker {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
-            Communication.sendSectionInfo();
+            Communication.sendMapInfo();
+            Communication.updateIDList();
+            Communication.updateSectionMissionInfo();
             executeTurn(turn++);
             Clock.yield();
         }
     }
 
-    public static void initialize() throws GameActionException {
-        Communication.updateIDList(false);
-    }
+    public static void initialize() throws GameActionException { }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();

@@ -134,29 +134,34 @@ public class EnlightenmentCenter {
     }
 
     private static void sendMission() throws GameActionException {
-        missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
-        if (missionType == 0) {
-            missionType++;
-        }
 
         // TODO add hide missions
 
-        RobotType targetRobotType;
         switch (missionType) {
             case Communication.MISSION_TYPE_SLEUTH:
-                targetRobotType = RobotType.SLANDERER;
+                Communication.sendMissionInfo(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER),
+                                              missionType);
                 break;
             case Communication.MISSION_TYPE_SIEGE:
-                targetRobotType = RobotType.ENLIGHTENMENT_CENTER;
+                Communication.sendMissionInfo(Communication.getClosestSiegeableEC(false),
+                                              missionType);
+                break;
+            case Communication.MISSION_TYPE_SETTLE:
+                Communication.sendMissionInfo(Communication.getClosestSiegeableEC(true),
+                                              missionType);
+                break;
+            case Communication.MISSION_TYPE_DEMUCK:
+                Communication.sendMissionInfo(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER),
+                                              missionType);
+                break;
+            case Communication.MISSION_TYPE_DEPOLI:
+                Communication.sendMissionInfo(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER),
+                                              missionType);
                 break;
             default:
-                targetRobotType = null;
                 break;
         }
 
-        if (targetRobotType == null) return;
-
-        MapLocation targetSection = Communication.getClosestSectionWithType(targetRobotType);
-        Communication.sendMissionInfo(targetSection, missionType);
+        missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
     }
 }
