@@ -46,7 +46,7 @@ public class EnlightenmentCenter {
     }
 
     private static void bid() throws GameActionException {
-        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1 && 1500 - rc.getRoundNum() + rc.getTeamVotes() > NUM_ROUNDS / 2 + 1 ) {
+        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1) {
             int influence = (int)(rc.getInfluence() * BID_PERCENTAGES[(rc.getRoundNum() - 1) / (NUM_ROUNDS / BID_PERCENTAGES.length)]);
             if (rc.canBid(influence)) {
                 rc.bid(influence);
@@ -55,7 +55,7 @@ public class EnlightenmentCenter {
     
     }
 
-    static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 30;
+    static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 20;
     static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 10;
     static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 50;
     
@@ -75,13 +75,20 @@ public class EnlightenmentCenter {
     private static void buildRobot() throws GameActionException {
         int roundNum = rc.getRoundNum();
         int slandererGap = (roundNum < 100) ?  ROUNDS_BETWEEN_SLANDERERS_INITIAL : (roundNum < 500) ? ROUNDS_BETWEEN_SLANDERERS_EARLY : (roundNum < 1000) ? ROUNDS_BETWEEN_SLANDERERS_MIDDLE : ROUNDS_BETWEEN_SLANDERERS_LATE;
-
+        boolean neutral = true; 
         MapLocation attackECLoc = Communication.getClosestSiegeableEC(true);
         if (attackECLoc == null) {
             attackECLoc = Communication.getClosestSiegeableEC(false);
+            neutral = false; 
         }
+
         if (attackECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
-            int ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128];
+            int ecInfluence = 0; 
+            if(neutral) ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128]; 
+
+            else{
+                ecInfluence = (rc.getInfluence() * .75 >  Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 2) ? Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] : (int)(rc.getInfluence() * .1); 
+            }
             if (buildRobot(RobotType.POLITICIAN, ecInfluence * 2)) {
                 lastRoundBuiltSiegePolitician = roundNum;
                 return;
@@ -115,13 +122,18 @@ public class EnlightenmentCenter {
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
         // TODO: use closest units for this instead
         if(type == RobotType.SLANDERER) {
-            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1); 
-            for(int i = nearbyRobots.length - 1; i >= 0; i--) {
-                if(nearbyRobots[i].type == RobotType.MUCKRAKER && nearbyRobots[i].team != rc.getTeam()){ 
-                    buildRobot(RobotType.POLITICIAN, 20); 
-                    return false; 
+            if(Communication.getClosestEnemyUnitOfType(ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < 50) {
+                buildRobot(RobotType.POLITICIAN, DEMUCK_INF); 
+                return false; 
+            }
+            else {
+            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
+                for(int i = nearbyRobots.length - 1; i >= 0; i--) {
+                    if(nearbyRobots[i].type = RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
+                        buildRobot(RobotType.POLITICIAN, DEMUCK_INF); 
+                        return false; 
+                    }
                 }
-
             }
         }
         Direction[] allDirections = Direction.allDirections();
