@@ -196,7 +196,7 @@ public class Communication {
 
     // Section Mission Info
     
-    static int NUM_MISSION_TYPES = 4;
+    static final int NUM_MISSION_TYPES = 4;
 
     // mission types
     static final int MISSION_TYPE_SLEUTH = 0;
@@ -207,8 +207,6 @@ public class Communication {
     static final int NO_MISSION_AVAILABLE = 1 << 14;
 
     static MapLocation[][] latestMissionSectionLoc = new MapLocation[MAX_NUM_FRIENDLY_ECS][NUM_MISSION_TYPES];
-
-    // TODO remember to check if ec is available when looping through to find closest mission
 
     // called by any non-ec unit, uses ec flags to get mission info
     public static void updateSectionMissionInfo() throws GameActionException {
@@ -231,6 +229,21 @@ public class Communication {
         RobotPlayer.rc.setFlag(missionType | (missionLocNum << 2));
     }
 
+    public static MapLocation getClosestMissionOfType(int missionType) {
+        MapLocation curLoc = RobotPlayer.rc.getLocation();
+        MapLocation closestMissionLoc = null;
+        int closestMissionDist = Integer.MAX_VALUE;
+        for (int i = 0; i < MAX_NUM_FRIENDLY_ECS; i++) {
+            if (friendlyECIDs[i] != 0 &&
+                RobotPlayer.rc.canGetFlag(friendlyECIDs[i]) &&
+                latestMissionSectionLoc[i][missionType] != null &&
+                curLoc.isWithinDistanceSquared(latestMissionSectionLoc[i][missionType], closestMissionDist - 1)) {
+                    closestMissionLoc = latestMissionSectionLoc[i][missionType];
+                    closestMissionDist = curLoc.distanceSquaredTo(closestMissionLoc);
+            }
+        }
+        return closestMissionLoc;
+    }
 
     // Utilities
 
