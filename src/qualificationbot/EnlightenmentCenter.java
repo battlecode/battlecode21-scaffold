@@ -84,12 +84,12 @@ public class EnlightenmentCenter {
 
         if (attackECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
             int ecInfluence = 0; 
-            if(neutral) ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128]; 
+            if(neutral) ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 1.25; 
 
             else{
-                ecInfluence = (rc.getInfluence() * .75 >  Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 2) ? Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] : (int)(rc.getInfluence() * .1); 
+                ecInfluence = (rc.getInfluence() * .75 >  Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] * 1.5) ? Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] : (int)(rc.getInfluence() * .1); 
             }
-            if (buildRobot(RobotType.POLITICIAN, ecInfluence * 2)) {
+            if (buildRobot(RobotType.POLITICIAN, ecInfluence)) {
                 lastRoundBuiltSiegePolitician = roundNum;
                 return;
             }
