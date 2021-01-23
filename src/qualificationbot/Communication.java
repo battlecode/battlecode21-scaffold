@@ -9,13 +9,14 @@ public class Communication {
 
     static final int MAX_ID = 4096;
 
-    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 128;
+    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 200;
     static int[] friendlyMuckrakerIDs = new int[MAX_NUM_FRIENDLY_MUCKRAKERS];
     static boolean[] friendlyMuckrakerAdded = new boolean[MAX_ID];
 
     static final int MAX_NUM_FRIENDLY_ECS = 20;
     static int[] friendlyECIDs = new int[MAX_NUM_FRIENDLY_ECS];
     static int friendlyECIdx = 0;
+    static boolean[] friendlyECAdded = new boolean[MAX_ID];
 
     // called by ec to update id lists
     public static void ecUpdateIDList() {
@@ -30,7 +31,7 @@ public class Communication {
                 while (nextIdx < MAX_NUM_FRIENDLY_MUCKRAKERS && RobotPlayer.rc.canGetFlag(friendlyMuckrakerIDs[nextIdx])) {
                     nextIdx++;
                 }
-                if (nextIdx != MAX_NUM_FRIENDLY_MUCKRAKERS) break;
+                if (nextIdx == MAX_NUM_FRIENDLY_MUCKRAKERS) break;
 
                 friendlyMuckrakerAdded[id % MAX_ID] = true;
                 friendlyMuckrakerIDs[nextIdx++] = id;
@@ -44,8 +45,10 @@ public class Communication {
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
             int id = sensedRobots[i].getID();
             if (sensedRobots[i].getTeam() == friendlyTeam &&
-                sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
+                sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER &&
+                !friendlyECAdded[id % MAX_ID]) {
                 friendlyECIDs[friendlyECIdx++] = id;
+                friendlyECAdded[id % MAX_ID] = true;
             }
         }
     }
@@ -97,6 +100,7 @@ public class Communication {
                 int moddedY = locNum / MAP_SIZE;
                 MapLocation loc = getLocationFromModded(moddedX, moddedY);
                 if (isEC == 1) {
+                    // System.out.println("received an ec message at loc: " + loc);
                     if (siegeableECAtLocation[moddedX][moddedY] == EC_TYPE_UNKNOWN) {
                         siegeLocations[siegeLocationsIdx++] = loc;
                     }
@@ -126,6 +130,7 @@ public class Communication {
                     closestSiegeLocDist = curLoc.distanceSquaredTo(siegeLocations[i]);
             }
         }
+        // System.out.println("closest siegable location: " + closestSiegeLoc);
         return closestSiegeLoc;
     }
 
@@ -135,6 +140,7 @@ public class Communication {
 
     // called by muckraker to send info back to ec
     public static void sendMapInfo() throws GameActionException {
+        // System.out.println("HERE");
         MapLocation curLoc = RobotPlayer.rc.getLocation();
         Team friendlyTeam = RobotPlayer.rc.getTeam();
 
@@ -170,6 +176,10 @@ public class Communication {
                 }
             }
         }
+
+        // System.out.println("closestSiegeableUnit: " + closestSiegeableUnit);
+        // System.out.println("closestNonSiegeableUnit: " + closestNonSiegeableUnit);
+        // System.out.println("closestEnemyUnit: " + closestEnemyUnit);
 
         MapLocation targetLoc = null;
         int isEC = 0;
@@ -241,8 +251,8 @@ public class Communication {
                 int missionLocNum       = flag >> 3;    // last 21 bits (only 14 used unless sending a no mission available message)
                 latestMissionSectionLoc[i][missionType] = null;
                 if (missionLocNum != NO_MISSION_AVAILABLE) {
-                    latestMissionSectionLoc[i][missionType] = new MapLocation(missionLocNum % MAP_SIZE,
-                                                                              missionLocNum / MAP_SIZE);
+                    latestMissionSectionLoc[i][missionType] = getLocationFromModded(missionLocNum % MAP_SIZE,
+                                                                                    missionLocNum / MAP_SIZE);
                 }
             }
         }
@@ -271,7 +281,7 @@ public class Communication {
 
     // Utilities
 
-    private static MapLocation getLocationFromModded(int moddedX, int moddedY) {
+    public static MapLocation getLocationFromModded(int moddedX, int moddedY) {
         MapLocation curLoc = RobotPlayer.rc.getLocation();
 
         int curXModded = curLoc.x % MAP_SIZE;

@@ -28,8 +28,8 @@ public class Pathfinding3 {
 
     public static void moveToRandomTarget() throws GameActionException {
         if (randomTargetLoc == null) {
-            randomTargetLoc = new MapLocation((int)(Math.random() * Communication.MAP_SIZE),
-                                              (int)(Math.random() * Communication.MAP_SIZE));
+            randomTargetLoc = Communication.getLocationFromModded((int)(Math.random() * Communication.MAP_SIZE),
+                                                                  (int)(Math.random() * Communication.MAP_SIZE));
         }
         if (!Pathfinding3.moveTo(randomTargetLoc)) {
             randomTargetLoc = null;

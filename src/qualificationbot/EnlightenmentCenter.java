@@ -76,9 +76,12 @@ public class EnlightenmentCenter {
         int roundNum = rc.getRoundNum();
         int slandererGap = (roundNum < 100) ?  ROUNDS_BETWEEN_SLANDERERS_INITIAL : (roundNum < 500) ? ROUNDS_BETWEEN_SLANDERERS_EARLY : (roundNum < 1000) ? ROUNDS_BETWEEN_SLANDERERS_MIDDLE : ROUNDS_BETWEEN_SLANDERERS_LATE;
 
-        MapLocation siegeSectionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
-        if (siegeSectionLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
-            int ecInfluence = Communication.ecInfluence[siegeSectionLoc.x][siegeSectionLoc.y];
+        MapLocation attackECLoc = Communication.getClosestSiegeableEC(true);
+        if (attackECLoc == null) {
+            attackECLoc = Communication.getClosestSiegeableEC(false);
+        }
+        if (attackECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
+            int ecInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128];
             if (buildRobot(RobotType.POLITICIAN, ecInfluence * 2)) {
                 lastRoundBuiltSiegePolitician = roundNum;
                 return;
@@ -90,8 +93,8 @@ public class EnlightenmentCenter {
             return;
         }
 
-        MapLocation sleuthSectionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SLEUTH);
-        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS && Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH] == null) {
+        MapLocation sleuthSectionLoc = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER);
+        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
             if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
                 lastRoundBuiltSleuthingMuckraker = roundNum;
                 return;
@@ -101,7 +104,6 @@ public class EnlightenmentCenter {
         
 
         if (roundNum > 25 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS && 
-            Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH] == null &&
             buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE)) {
             lastRoundBuiltDemuckPolitician = roundNum;
             return;

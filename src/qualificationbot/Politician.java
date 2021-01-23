@@ -30,10 +30,14 @@ public class Politician {
     public static void executeTurn(int turnNumber) throws GameActionException {
         if(!siegeBot) defend(); 
         else {
-            MapLocation missionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
-            if (missionLoc != null) {
-                System.out.println("Siege mission @ " + missionLoc);
-                siegeEC(missionLoc);
+            MapLocation siegeMissionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
+            MapLocation settleMissionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SETTLE);
+            if (settleMissionLoc != null) {
+                // System.out.println("Settle mission @ " + settleMissionLoc);
+                siegeEC(settleMissionLoc);
+            } else if (siegeMissionLoc != null) {
+                // System.out.println("Siege mission @ " + siegeMissionLoc);
+                siegeEC(siegeMissionLoc);
             } else {
                 
                 Pathfinding3.moveToRandomTarget();
@@ -59,7 +63,7 @@ public class Politician {
             if(rc.getLocation().isWithinDistanceSquared(ec.location, 1) && rc.canEmpower(1)) {
                 rc.empower(1);
             } else if (!Pathfinding3.moveTo(ec.location) && rc.getLocation().isWithinDistanceSquared(ec.location, 9)) {
-                int distSquaredToEC = rc.getLocation().distanceSquaredTo(rc.getLocation());
+                int distSquaredToEC = rc.getLocation().distanceSquaredTo(ec.location);
                 if (rc.canEmpower(distSquaredToEC)) {
                     rc.empower(distSquaredToEC);
                 }
