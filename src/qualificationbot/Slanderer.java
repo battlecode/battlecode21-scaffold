@@ -31,7 +31,7 @@ public class Slanderer {
 
     public static void initialize() {
         startLoc = rc.getLocation();
-        Communication.updateIDList();
+        Communication.updateIDList(false);
     }
     
     public static void executeTurn(int turnNumber) throws GameActionException {
@@ -48,12 +48,20 @@ public class Slanderer {
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         for(int i = nearbyRobots.length - 1; i >= 0; i--) {
             RobotInfo robot = nearbyRobots[i]; 
+            RobotInfo closestMuck = null; 
+
             if(robot.getTeam() != rc.getTeam() && robot.getType() == RobotType.MUCKRAKER) {
-                Direction muckDir = robot.getLocation().directionTo(); 
-                rc.moveTo(rc.getLocation().add(muckDir.opposite()).add(muckDir.opposite())); 
-                return; 
+                if(closestMuck == null || closestMuck.location.distanceSquaredTo(rc.getLocation()) > robot.getLocation().distanceSquaredTo(rc.getLocation())) {
+                    closestMuck = robot; 
+                }
+                
 
             }
+        }
+        if(closestMuck != null) {
+            Direction muckDir = closestMuck.getLocation().directionTo(); 
+            rc.moveTo(rc.getLocation().add(muckDir.opposite()).add(muckDir.opposite())); 
+            return;
         }
         if(turnNumber < 260) {
             roamCloseToStart();
