@@ -91,7 +91,7 @@ public class EnlightenmentCenter {
         }
 
         MapLocation sleuthSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH];
-        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
+        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS && Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH] == null) {
             if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
                 lastRoundBuiltSleuthingMuckraker = roundNum;
                 return;
@@ -100,7 +100,8 @@ public class EnlightenmentCenter {
 
         
 
-        if (roundNum > 20 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
+        if (roundNum > 25 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS && 
+            Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH] == null &&
             buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE)) {
             lastRoundBuiltDemuckPolitician = roundNum;
             return;

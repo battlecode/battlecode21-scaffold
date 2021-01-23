@@ -45,6 +45,16 @@ public class Slanderer {
         //         roamCloseToStart();
         //         break;
         // }
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
+        for(int i = nearbyRobots.length - 1; i >= 0; i--) {
+            RobotInfo robot = nearbyRobots[i]; 
+            if(robot.getTeam() != rc.getTeam() && robot.getType() == RobotType.MUCKRAKER) {
+                Direction muckDir = robot.getLocation().directionTo(); 
+                rc.moveTo(rc.getLocation().add(muckDir.opposite()).add(muckDir.opposite())); 
+                return; 
+
+            }
+        }
         if(turnNumber < 260) {
             roamCloseToStart();
         }
