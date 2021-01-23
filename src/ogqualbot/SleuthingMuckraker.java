@@ -1,4 +1,4 @@
-package qualificationbot;
+package ogqualbot;
 import battlecode.common.*;
 
 public class SleuthingMuckraker {
