@@ -199,12 +199,12 @@ public class Communication {
             }
         } else if (closestNonSiegeableUnit != null) {
             targetLoc = closestNonSiegeableUnit.getLocation();
-            isEC = 0;
+            isEC = 1;
             type = EC_TYPE_TAKEN;
         } else {
             targetLoc = curLoc; // just so it's not null
             isEC = 0;
-            type = EC_TYPE_UNKNOWN;
+            type = ENEMY_TYPE_UNKNOWN;
         }
 
         int moddedX = targetLoc.x % MAP_SIZE;
@@ -224,7 +224,7 @@ public class Communication {
     // mission types
     static final int MISSION_TYPE_SLEUTH = 0;
     static final int MISSION_TYPE_SIEGE = 1;
-    static final int MISSION_TYPE_TAKE_NEUTRAL = 2;
+    static final int MISSION_TYPE_SETTLE = 2;
     static final int MISSION_TYPE_DEMUCK = 3;
     static final int MISSION_TYPE_DEPOLI = 4;
 

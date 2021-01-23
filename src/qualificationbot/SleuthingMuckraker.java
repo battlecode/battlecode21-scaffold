@@ -11,16 +11,15 @@ public class SleuthingMuckraker {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
-            Communication.sendSectionInfo();
+            Communication.sendMapInfo();
+            Communication.updateIDList();
             Communication.updateSectionMissionInfo();
             executeTurn(turn++);
             Clock.yield();
         }
     }
 
-    public static void initialize() throws GameActionException {
-        Communication.updateIDList(false);
-    }
+    public static void initialize() throws GameActionException { }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         // check for nearby enemy slanderers
@@ -44,9 +43,9 @@ public class SleuthingMuckraker {
                 Pathfinding3.moveTo(closestTarget.getLocation());
             }
         } else {
-            MapLocation missionSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH];
-            if (missionSectionLoc != null) {
-                Pathfinding3.moveTo(Communication.getSectionCenterLoc(missionSectionLoc));
+            MapLocation missionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SLEUTH);
+            if (missionLoc != null) {
+                Pathfinding3.moveTo(missionLoc);
             } else {
                 Pathfinding3.moveToRandomTarget();
             }

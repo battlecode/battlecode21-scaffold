@@ -31,7 +31,7 @@ public class Slanderer {
 
     public static void initialize() {
         startLoc = rc.getLocation();
-        Communication.updateIDList(false);
+        Communication.updateIDList();
     }
     
     public static void executeTurn(int turnNumber) throws GameActionException {
