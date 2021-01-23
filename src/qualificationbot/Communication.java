@@ -110,6 +110,29 @@ public class Communication {
         }
     }
 
+    public static MapLocation getClosestSiegeableEC(boolean neutral) {
+        MapLocation curLoc = RobotPlayer.rc.getLocation();
+        MapLocation closestSiegeLoc = null;
+        int closestSiegeLocDist = Integer.MAX_VALUE;
+        for (int i = 0; i < siegeLocations.length; i++) {
+            if (siegeLocations[i] == null) break;
+
+            int moddedX = siegeLocations[i].x % MAP_SIZE;
+            int moddedY = siegeLocations[i].y % MAP_SIZE;
+            int targetECType = neutral ? EC_TYPE_NEUTRAL : EC_TYPE_ENEMY;
+            if (siegeableECAtLocation[moddedX][moddedY] == targetECType &&
+                curLoc.isWithinDistanceSquared(siegeLocations[i], closestSiegeLocDist - 1)) {
+                    closestSiegeLoc = siegeLocations[i];
+                    closestSiegeLocDist = curLoc.distanceSquaredTo(siegeLocations[i]);
+            }
+        }
+        return closestSiegeLoc;
+    }
+
+    public static MapLocation getClosestEnemyUnitOfType(int enemyUnitType) {
+        return closestEnemyLoc[enemyUnitType];
+    }
+
     // called by muckraker to send info back to ec
     public static void sendMapInfo() throws GameActionException {
         MapLocation curLoc = RobotPlayer.rc.getLocation();
@@ -196,13 +219,14 @@ public class Communication {
 
     // Section Mission Info
     
-    static final int NUM_MISSION_TYPES = 4;
+    static final int NUM_MISSION_TYPES = 5;
 
     // mission types
     static final int MISSION_TYPE_SLEUTH = 0;
     static final int MISSION_TYPE_SIEGE = 1;
-    static final int MISSION_TYPE_DEMUCK = 2;
-    static final int MISSION_TYPE_DEPOLI = 3;
+    static final int MISSION_TYPE_TAKE_NEUTRAL = 2;
+    static final int MISSION_TYPE_DEMUCK = 3;
+    static final int MISSION_TYPE_DEPOLI = 4;
 
     static final int NO_MISSION_AVAILABLE = 1 << 14;
 
@@ -213,8 +237,8 @@ public class Communication {
         for (int i = 0; i < MAX_NUM_FRIENDLY_ECS; i++) {
             if (RobotPlayer.rc.canGetFlag(friendlyECIDs[i])) {
                 int flag = RobotPlayer.rc.getFlag(friendlyECIDs[i]);
-                int missionType         = flag & 0x3;   // first 2 bits (only 2 used)
-                int missionLocNum       = flag >> 2;    // last 22 bits (only 14 used unless sending a no mission available message)
+                int missionType         = flag & 0x7;   // first 3 bits
+                int missionLocNum       = flag >> 3;    // last 21 bits (only 14 used unless sending a no mission available message)
                 latestMissionSectionLoc[i][missionType] = null;
                 if (missionLocNum != NO_MISSION_AVAILABLE) {
                     latestMissionSectionLoc[i][missionType] = new MapLocation(missionLocNum % MAP_SIZE,
@@ -226,7 +250,7 @@ public class Communication {
 
     public static void sendMissionInfo(MapLocation missionLoc, int missionType) throws GameActionException {
         int missionLocNum = missionLoc == null ? NO_MISSION_AVAILABLE : (missionLoc.x % MAP_SIZE) | ((missionLoc.y % MAP_SIZE) << 7);
-        RobotPlayer.rc.setFlag(missionType | (missionLocNum << 2));
+        RobotPlayer.rc.setFlag(missionType | (missionLocNum << 3));
     }
 
     public static MapLocation getClosestMissionOfType(int missionType) {

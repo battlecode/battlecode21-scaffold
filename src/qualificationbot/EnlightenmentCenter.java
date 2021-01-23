@@ -16,7 +16,7 @@ public class EnlightenmentCenter {
     static int politiciansBuilt; 
     static boolean earlyGame; 
 
-    static int missionType = Communication.MISSION_TYPE_UNKNOWN;
+    static int missionType = Communication.MISSION_TYPE_SLEUTH;
 
     static RobotController rc;
 
@@ -25,8 +25,8 @@ public class EnlightenmentCenter {
         int turn = rc.getRoundNum();
         initialize();
         while (true) {
-            Communication.updateIDList(true);
-            Communication.updateSectionRobotInfo();
+            Communication.ecUpdateIDList();
+            Communication.ecUpdateMapInfo();
             if(turn > EARLY_GAME_ROUNDS) earlyGame = false; 
             executeTurn(turn++);
             Clock.yield();
@@ -76,7 +76,7 @@ public class EnlightenmentCenter {
         int roundNum = rc.getRoundNum();
         int slandererGap = (roundNum < 100) ?  ROUNDS_BETWEEN_SLANDERERS_INITIAL : (roundNum < 500) ? ROUNDS_BETWEEN_SLANDERERS_EARLY : (roundNum < 1000) ? ROUNDS_BETWEEN_SLANDERERS_MIDDLE : ROUNDS_BETWEEN_SLANDERERS_LATE;
 
-        MapLocation siegeSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
+        MapLocation siegeSectionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
         if (siegeSectionLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
             int ecInfluence = Communication.ecInfluence[siegeSectionLoc.x][siegeSectionLoc.y];
             if (buildRobot(RobotType.POLITICIAN, ecInfluence * 2)) {
@@ -90,7 +90,7 @@ public class EnlightenmentCenter {
             return;
         }
 
-        MapLocation sleuthSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH];
+        MapLocation sleuthSectionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SLEUTH);
         if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS && Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SLEUTH] == null) {
             if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
                 lastRoundBuiltSleuthingMuckraker = roundNum;
@@ -111,6 +111,7 @@ public class EnlightenmentCenter {
     }
 
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
+        // TODO: use closest units for this instead
         if(type == RobotType.SLANDERER) {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1); 
             for(int i = nearbyRobots.length - 1; i >= 0; i--) {
