@@ -16,29 +16,24 @@ public class Politician {
         rc = RobotPlayer.rc;
         initialize();
         while (true) {
-            Communication.sendSectionInfo();
-            if(siegeBot){
-                Communication.updateSectionMissionInfo();
-            }
+            Communication.updateIDList(); 
+            Communication.updateSectionMissionInfo();
             executeTurn(turn++);            
             Clock.yield();
         }
     }
 
     public static void initialize() {
-        Communication.updateIDList(false); 
         siegeBot = rc.getInfluence() > DEMUCK_INF;
-         
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         if(!siegeBot) defend(); 
         else {
-            MapLocation missionSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
-            if (missionSectionLoc != null) {
-                System.out.println("Siege mission @ " + missionSectionLoc);
-                MapLocation targetLoc = Communication.getSectionCenterLoc(missionSectionLoc);
-                siegeEC(targetLoc);
+            MapLocation missionLoc = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
+            if (missionLoc != null) {
+                System.out.println("Siege mission @ " + missionLoc);
+                siegeEC(missionLoc);
             } else {
                 
                 Pathfinding3.moveToRandomTarget();
