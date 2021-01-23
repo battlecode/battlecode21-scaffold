@@ -9,6 +9,7 @@ public class Politician {
 
     static boolean siegeBot; 
     static final int DEMUCK_INF = 20; 
+    static MapLocation targetLoc;
 
     public static void run() throws GameActionException {
         int turn = 0;
@@ -26,19 +27,20 @@ public class Politician {
 
     public static void initialize() {
         Communication.updateIDList(false); 
-        siegeBot = rc.getInfluence() > DEMUCK_INF; 
+        siegeBot = rc.getInfluence() > DEMUCK_INF;
+         
     }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         if(!siegeBot) defend(); 
         else {
             MapLocation missionSectionLoc = Communication.latestMissionSectionLoc[Communication.MISSION_TYPE_SIEGE];
-            
             if (missionSectionLoc != null) {
                 System.out.println("Siege mission @ " + missionSectionLoc);
                 MapLocation targetLoc = Communication.getSectionCenterLoc(missionSectionLoc);
                 siegeEC(targetLoc);
             } else {
+                
                 Pathfinding3.moveToRandomTarget();
             }
         }

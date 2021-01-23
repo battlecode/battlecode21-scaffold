@@ -46,7 +46,7 @@ public class EnlightenmentCenter {
     }
 
     private static void bid() throws GameActionException {
-        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1) {
+        if(rc.getTeamVotes() < NUM_ROUNDS / 2 + 1 && 1500 - rc.getRoundNum() + rc.getTeamVotes() > NUM_ROUNDS / 2 + 1 ) {
             int influence = (int)(rc.getInfluence() * BID_PERCENTAGES[(rc.getRoundNum() - 1) / (NUM_ROUNDS / BID_PERCENTAGES.length)]);
             if (rc.canBid(influence)) {
                 rc.bid(influence);
@@ -100,7 +100,7 @@ public class EnlightenmentCenter {
 
         
 
-        if (roundNum > 50 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
+        if (roundNum > 20 && roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
             buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE)) {
             lastRoundBuiltDemuckPolitician = roundNum;
             return;
