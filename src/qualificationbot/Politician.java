@@ -84,7 +84,7 @@ public class Politician {
         
         // TODO differentiate between big muckrakers and small muckrakers and try to stick to some of them etc
         if(targetLoc == null) {
-            Pathinding3.moveToRandomTarget();
+            Pathfinding3.moveToRandomTarget();
             return; 
         }
         else if(targetLoc.distanceSquaredTo(rc.getLocation()) > 9) {
