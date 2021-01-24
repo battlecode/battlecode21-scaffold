@@ -1,4 +1,4 @@
-package qualificationbot;
+package qualificationbot0;
 
 import battlecode.common.*;
 import java.util.*;
@@ -9,39 +9,32 @@ public class Communication {
 
     static final int MAX_ID = 4096;
 
-    static final int MAX_NUM_FRIENDLY_UNITS = 200;
-    static int[] friendlyUnitIDs = new int[MAX_NUM_FRIENDLY_UNITS];
-    static boolean[] friendlyUnitAdded = new boolean[MAX_ID];
+    static final int MAX_NUM_FRIENDLY_MUCKRAKERS = 200;
+    static int[] friendlyMuckrakerIDs = new int[MAX_NUM_FRIENDLY_MUCKRAKERS];
+    static boolean[] friendlyMuckrakerAdded = new boolean[MAX_ID];
 
     static final int MAX_NUM_FRIENDLY_ECS = 20;
-    static MapLocation[] friendlyECLocations = new MapLocation[MAX_NUM_FRIENDLY_ECS];
     static int[] friendlyECIDs = new int[MAX_NUM_FRIENDLY_ECS];
     static int friendlyECIdx = 0;
     static boolean[] friendlyECAdded = new boolean[MAX_ID];
-
-    static boolean hasAvailableUnitSlots = true;
 
     // called by ec to update id lists
     public static void ecUpdateIDList() {
         Team friendlyTeam = RobotPlayer.rc.getTeam();
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         int nextIdx = 0;
-        hasAvailableUnitSlots = true;
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
             int id = sensedRobots[i].getID();
             if (sensedRobots[i].getTeam() == friendlyTeam &&
-                (sensedRobots[i].getType() == RobotType.MUCKRAKER || sensedRobots[i].getType() == RobotType.POLITICIAN) &&
-                !friendlyUnitAdded[id % MAX_ID]) {
-                while (nextIdx < MAX_NUM_FRIENDLY_UNITS && RobotPlayer.rc.canGetFlag(friendlyUnitIDs[nextIdx])) {
+                sensedRobots[i].getType() == RobotType.MUCKRAKER &&
+                !friendlyMuckrakerAdded[id % MAX_ID]) {
+                while (nextIdx < MAX_NUM_FRIENDLY_MUCKRAKERS && RobotPlayer.rc.canGetFlag(friendlyMuckrakerIDs[nextIdx])) {
                     nextIdx++;
                 }
-                if (nextIdx == MAX_NUM_FRIENDLY_UNITS) {
-                    hasAvailableUnitSlots = false;
-                    break;
-                }
+                if (nextIdx == MAX_NUM_FRIENDLY_MUCKRAKERS) break;
 
-                friendlyUnitAdded[id % MAX_ID] = true;
-                friendlyUnitIDs[nextIdx++] = id;
+                friendlyMuckrakerAdded[id % MAX_ID] = true;
+                friendlyMuckrakerIDs[nextIdx++] = id;
             }
         }
     }
@@ -54,10 +47,8 @@ public class Communication {
             if (sensedRobots[i].getTeam() == friendlyTeam &&
                 sensedRobots[i].getType() == RobotType.ENLIGHTENMENT_CENTER &&
                 !friendlyECAdded[id % MAX_ID]) {
-                    friendlyECLocations[friendlyECIdx] = sensedRobots[i].getLocation();
-                    friendlyECIDs[friendlyECIdx] = id;
-                    friendlyECIdx++; 
-                    friendlyECAdded[id % MAX_ID] = true;
+                friendlyECIDs[friendlyECIdx++] = id;
+                friendlyECAdded[id % MAX_ID] = true;
             }
         }
     }
@@ -68,11 +59,10 @@ public class Communication {
     static final int MAX_NUM_SIEGE_LOCATIONS = 12;
 
     static final int EC_INFLUENCE_SCALE = 50;
-    static final int ENEMY_INFLUENCE_SCALE = 4;
-    static final int MAX_INFLUENCE_INFO_STORED = 0x7F;
+    static final int MAX_EC_INFLUENCE_STORED = EC_INFLUENCE_SCALE * ((1 << 7) - 1);
 
     static final int EC_TYPE_UNKNOWN = 0;
-    static final int EC_TYPE_FRIENDLY = 1;
+    static final int EC_TYPE_TAKEN = 1; // could be friendly or surrounded
     static final int EC_TYPE_NEUTRAL = 2;
     static final int EC_TYPE_ENEMY = 3;
 
@@ -90,40 +80,35 @@ public class Communication {
 
     static int[] closestEnemyDist = new int[NUM_ENEMY_UNIT_TYPES];
     static MapLocation[] closestEnemyLoc = new MapLocation[NUM_ENEMY_UNIT_TYPES];
-    static int[] maxEnemyInfluence = new int[NUM_ENEMY_UNIT_TYPES];
 
     // called by ec, uses muckraker flags to get map info
     public static void ecUpdateMapInfo() throws GameActionException {
-        // reset closest enemy locations (except slanderer, but immediately switch to a new one if found)
-        closestEnemyLoc[ENEMY_TYPE_MUCKRAKER] = null;
-        closestEnemyLoc[ENEMY_TYPE_POLITICIAN] = null;
+        // reset closest enemy locations
+        // TODO consider retaining the distances for a short while
         Arrays.fill(closestEnemyDist, Integer.MAX_VALUE);
-        Arrays.fill(maxEnemyInfluence, 0);
+        Arrays.fill(closestEnemyLoc, null);
 
         MapLocation curLoc = RobotPlayer.rc.getLocation();
-        for (int i = friendlyUnitIDs.length - 1; i >= 0; i--) {
-            if (friendlyUnitIDs[i] != 0 && RobotPlayer.rc.canGetFlag(friendlyUnitIDs[i])) {
-                int flag = RobotPlayer.rc.getFlag(friendlyUnitIDs[i]);
+        for (int i = MAX_NUM_FRIENDLY_MUCKRAKERS - 1; i >= 0; i--) {
+            if (friendlyMuckrakerIDs[i] != 0 && RobotPlayer.rc.canGetFlag(friendlyMuckrakerIDs[i])) {
+                int flag = RobotPlayer.rc.getFlag(friendlyMuckrakerIDs[i]);
                 int locNum              = flag & 0x3FFF;    // first 14 bits
                 int isEC                = flag >> 14 & 0x1; // next 1 bit
                 int type                = flag >> 15 & 0x3; // next 2 bits
-                int influenceInfo       = flag >> 17;       // last 7 bits
+                int ecInfluenceInfo     = flag >> 17;       // last 7 bits
                 int moddedX = locNum % MAP_SIZE;
                 int moddedY = locNum / MAP_SIZE;
                 MapLocation loc = getLocationFromModded(moddedX, moddedY);
                 if (isEC == 1) {
+                    // System.out.println("received an ec message at loc: " + loc);
                     if (siegeableECAtLocation[moddedX][moddedY] == EC_TYPE_UNKNOWN) {
                         siegeLocations[siegeLocationsIdx++] = loc;
                     }
                     siegeableECAtLocation[moddedX][moddedY] = type;
-                    ecInfluence[moddedX][moddedY] = influenceInfo * EC_INFLUENCE_SCALE;
+                    ecInfluence[moddedX][moddedY] = ecInfluenceInfo * EC_INFLUENCE_SCALE;
                 } else if (curLoc.isWithinDistanceSquared(loc, closestEnemyDist[type] - 1)) {
                     closestEnemyLoc[type] = loc;
                     closestEnemyDist[type] = curLoc.distanceSquaredTo(loc);
-                    int enemyInfluence = influenceInfo * ENEMY_INFLUENCE_SCALE;
-                    if (enemyInfluence > maxEnemyInfluence[type]) {
-                        maxEnemyInfluence[type] = enemyInfluence;
-                    }
                 }
             }
         }
@@ -145,6 +130,7 @@ public class Communication {
                     closestSiegeLocDist = curLoc.distanceSquaredTo(siegeLocations[i]);
             }
         }
+        // System.out.println("closest siegable location: " + closestSiegeLoc);
         return closestSiegeLoc;
     }
 
@@ -154,17 +140,16 @@ public class Communication {
 
     // called by muckraker to send info back to ec
     public static void sendMapInfo() throws GameActionException {
+        // System.out.println("HERE");
         MapLocation curLoc = RobotPlayer.rc.getLocation();
         Team friendlyTeam = RobotPlayer.rc.getTeam();
 
         RobotInfo closestSiegeableUnit = null;
         RobotInfo closestNonSiegeableUnit = null;
         RobotInfo closestEnemyUnit = null;
-        RobotInfo closestSlandererUnit = null;
         int closestSiegeableUnitDist = Integer.MAX_VALUE;
         int closestNonSiegeableUnitDist = Integer.MAX_VALUE;
         int closestEnemyUnitDist = Integer.MAX_VALUE;
-        int closestSlandererUnitDist = Integer.MAX_VALUE;
         RobotInfo[] sensedRobots = RobotPlayer.rc.senseNearbyRobots();
         for (int i = sensedRobots.length - 1; i >= 0; --i) {
             Team team = sensedRobots[i].getTeam();
@@ -173,19 +158,12 @@ public class Communication {
             if (team == friendlyTeam && type != RobotType.ENLIGHTENMENT_CENTER) continue;
 
             if (type != RobotType.ENLIGHTENMENT_CENTER) {
-                if (type == RobotType.SLANDERER) {
-                    if (curLoc.isWithinDistanceSquared(robotLoc, closestSlandererUnitDist - 1)) {
-                        closestSlandererUnit = sensedRobots[i];
-                        closestSlandererUnitDist = curLoc.distanceSquaredTo(robotLoc);
-                    }
-                } else {
-                    if (curLoc.isWithinDistanceSquared(robotLoc, closestEnemyUnitDist - 1)) {
-                        closestEnemyUnit = sensedRobots[i];
-                        closestEnemyUnitDist = curLoc.distanceSquaredTo(robotLoc);
-                    }
+                if (curLoc.isWithinDistanceSquared(robotLoc, closestEnemyUnitDist - 1)) {
+                    closestEnemyUnit = sensedRobots[i];
+                    closestEnemyUnitDist = curLoc.distanceSquaredTo(robotLoc);
                 }
             } else {
-                if (team == friendlyTeam) {
+                if (team == friendlyTeam || Pathfinding3.getOpenAdjacentLoc(robotLoc) == null) {
                     if (curLoc.isWithinDistanceSquared(robotLoc, closestNonSiegeableUnitDist - 1)) {
                         closestNonSiegeableUnit = sensedRobots[i];
                         closestNonSiegeableUnitDist = curLoc.distanceSquaredTo(robotLoc);
@@ -199,37 +177,40 @@ public class Communication {
             }
         }
 
+        // System.out.println("closestSiegeableUnit: " + closestSiegeableUnit);
+        // System.out.println("closestNonSiegeableUnit: " + closestNonSiegeableUnit);
+        // System.out.println("closestEnemyUnit: " + closestEnemyUnit);
+
         MapLocation targetLoc = null;
         int isEC = 0;
         int type = 0;
-        int influenceInfo = 0;
-
-        // priority list:
-        // 1. siegeable/settleable ec's
-        // 2. slanderers
-        // 3. friendly ec's
-        // 4. other enemy units
-
+        int ecInfluenceInfo = 0;
         if (closestSiegeableUnit != null) {
             targetLoc = closestSiegeableUnit.getLocation();
             isEC = 1;
             type = closestSiegeableUnit.getTeam() == Team.NEUTRAL ? EC_TYPE_NEUTRAL : EC_TYPE_ENEMY;
-            influenceInfo = getInfluenceInfo(true, closestSiegeableUnit.getInfluence());
-        } else if (closestSlandererUnit != null) {
-            targetLoc = closestSlandererUnit.getLocation();
-            isEC = 0;
-            type = ENEMY_TYPE_SLANDERER;
-            influenceInfo = getInfluenceInfo(false, closestSlandererUnit.getInfluence());
-        } else if (closestNonSiegeableUnit != null) {
-            targetLoc = closestNonSiegeableUnit.getLocation();
-            isEC = 1;
-            type = EC_TYPE_FRIENDLY;
-            influenceInfo = getInfluenceInfo(true, closestNonSiegeableUnit.getInfluence());
+            ecInfluenceInfo = (Math.min(closestSiegeableUnit.getInfluence(), MAX_EC_INFLUENCE_STORED) - 1) / EC_INFLUENCE_SCALE + 1;
         } else if (closestEnemyUnit != null) {
             targetLoc = closestEnemyUnit.getLocation();
             isEC = 0;
-            type = closestEnemyUnit.getType() == RobotType.MUCKRAKER ? ENEMY_TYPE_MUCKRAKER : ENEMY_TYPE_POLITICIAN;
-            influenceInfo = getInfluenceInfo(false, closestEnemyUnit.getInfluence());
+            switch (closestEnemyUnit.getType()) {
+                case MUCKRAKER:
+                    type = ENEMY_TYPE_MUCKRAKER;
+                    break;
+                case POLITICIAN:
+                    type = ENEMY_TYPE_POLITICIAN;
+                    break;
+                case SLANDERER:
+                    type = ENEMY_TYPE_SLANDERER;
+                    break;
+                default:
+                    type = ENEMY_TYPE_UNKNOWN;
+                    break;
+            }
+        } else if (closestNonSiegeableUnit != null) {
+            targetLoc = closestNonSiegeableUnit.getLocation();
+            isEC = 1;
+            type = EC_TYPE_TAKEN;
         } else {
             targetLoc = curLoc; // just so it's not null
             isEC = 0;
@@ -243,12 +224,7 @@ public class Communication {
         RobotPlayer.rc.setFlag(locNum |
                               (isEC << 14) |
                               (type << 15) |
-                              (influenceInfo  << 17));
-    }
-
-    private static int getInfluenceInfo(boolean isEC, int origInfluence) {
-        int scale = isEC ? EC_INFLUENCE_SCALE : ENEMY_INFLUENCE_SCALE;
-        return Math.min((int)Math.ceil((double)origInfluence / scale), MAX_INFLUENCE_INFO_STORED);
+                              (ecInfluenceInfo  << 17));
     }
 
     // Section Mission Info

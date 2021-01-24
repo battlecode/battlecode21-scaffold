@@ -1,4 +1,4 @@
-package qualificationbot;
+package qualificationbot0;
 import java.util.Arrays;
 
 import battlecode.common.*;
@@ -28,15 +28,8 @@ public class Pathfinding3 {
 
     public static void moveToRandomTarget() throws GameActionException {
         if (randomTargetLoc == null) {
-            if (RobotPlayer.rc.getRoundNum() < 30) {
-                int x = (int)(Math.random() * 3) - 1;
-                int y = (int)(Math.random() * 3) - 1;
-                MapLocation curLoc = RobotPlayer.rc.getLocation();
-                randomTargetLoc = new MapLocation(curLoc.x + 64*x, curLoc.y + 64*y);
-            } else {
-                randomTargetLoc = Communication.getLocationFromModded((int)(Math.random() * Communication.MAP_SIZE),
-                (int)(Math.random() * Communication.MAP_SIZE));
-            }
+            randomTargetLoc = Communication.getLocationFromModded((int)(Math.random() * Communication.MAP_SIZE),
+                                                                  (int)(Math.random() * Communication.MAP_SIZE));
         }
         if (!Pathfinding3.moveTo(randomTargetLoc)) {
             randomTargetLoc = null;
@@ -50,7 +43,6 @@ public class Pathfinding3 {
         }
     }
 
-    // TODO work on boxing
     public static MapLocation getOpenAdjacentLoc(MapLocation loc) throws GameActionException {
         MapLocation curLoc = RobotPlayer.rc.getLocation();
         if (curLoc.isWithinDistanceSquared(loc, 2)) {
