@@ -90,7 +90,7 @@ public class Communication {
 
     static int[] closestEnemyDist = new int[NUM_ENEMY_UNIT_TYPES];
     static MapLocation[] closestEnemyLoc = new MapLocation[NUM_ENEMY_UNIT_TYPES];
-    static int[] maxEnemyInfluence = new int[NUM_ENEMY_UNIT_TYPES];
+    static int[] closestEnemyInfluence = new int[NUM_ENEMY_UNIT_TYPES];
 
     // called by ec, uses muckraker flags to get map info
     public static void ecUpdateMapInfo() throws GameActionException {
@@ -98,7 +98,7 @@ public class Communication {
         closestEnemyLoc[ENEMY_TYPE_MUCKRAKER] = null;
         closestEnemyLoc[ENEMY_TYPE_POLITICIAN] = null;
         Arrays.fill(closestEnemyDist, Integer.MAX_VALUE);
-        Arrays.fill(maxEnemyInfluence, 0);
+        Arrays.fill(closestEnemyInfluence, 0);
 
         MapLocation curLoc = RobotPlayer.rc.getLocation();
         for (int i = friendlyUnitIDs.length - 1; i >= 0; i--) {
@@ -121,9 +121,7 @@ public class Communication {
                     closestEnemyLoc[type] = loc;
                     closestEnemyDist[type] = curLoc.distanceSquaredTo(loc);
                     int enemyInfluence = influenceInfo * ENEMY_INFLUENCE_SCALE;
-                    if (enemyInfluence > maxEnemyInfluence[type]) {
-                        maxEnemyInfluence[type] = enemyInfluence;
-                    }
+                    closestEnemyInfluence[type] = enemyInfluence;
                 }
             }
         }

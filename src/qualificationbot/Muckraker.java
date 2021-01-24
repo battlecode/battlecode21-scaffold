@@ -3,7 +3,9 @@ import battlecode.common.*;
 
 public class Muckraker {
     static final int EXPOSE_RADIUS = 12;
-    static final int SLEUTH_INFLUENCE = 50;
+    static final int MAX_SCOUT_INFLUENCE = 30;
+    static final double SCOUT_INFLUENCE_SCALING = .002;
+    static final int SLEUTH_INFLUENCE = 100;
 
     static RobotController rc;
 

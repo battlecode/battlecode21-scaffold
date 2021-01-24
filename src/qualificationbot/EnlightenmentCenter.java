@@ -3,11 +3,11 @@ import battlecode.common.*;
 
 public class EnlightenmentCenter {
 
-    static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.5;
+    static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.75;
     static final int MAX_SLANDERER_INFLUENCE = 949;
     public static final double[] BID_PERCENTAGES = new double[] {.007, .014, .025, .05, .2};
     static final int NUM_ROUNDS = 1500;
-    static final int MIN_SLANDERER_INFLUENCE = 130; 
+    static final int MIN_SLANDERER_INFLUENCE = 50; 
     static final int EARLY_GAME_ROUNDS = NUM_ROUNDS / 3;  
 
     static int slanderersBuilt; 
@@ -54,86 +54,115 @@ public class EnlightenmentCenter {
     }
 
     static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 5;
-    static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 15;
-    static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 40;
+    static final int ROUNDS_BETWEEN_SETTLE_POLITICIANS = 50;
+    static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 50;
+    static final int ROUNDS_BETWEEN_EXPENSIVE_SCOUTING_MUCKRAKERS = 5;
+    static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 10;
     
-    static final int ROUNDS_BETWEEN_SLANDERERS_LATE = 20;
-    static final int ROUNDS_BETWEEN_SLANDERERS_MIDDLE = 15;
+    static final int ROUNDS_BETWEEN_SLANDERERS_LATE = 10;
+    static final int ROUNDS_BETWEEN_SLANDERERS_MIDDLE = 10;
     static final int ROUNDS_BETWEEN_SLANDERERS_EARLY = 10;
     static final int ROUNDS_BETWEEN_SLANDERERS_INITIAL = 5;
 
     static final int SLEUTHING_MUCKRAKER_INFLUENCE = Muckraker.SLEUTH_INFLUENCE;
+    static final int SETTLE_STARTING_INFLUENCE = MIN_SLANDERER_INFLUENCE;
 
     static int lastRoundBuiltSiegePolitician = -ROUNDS_BETWEEN_SIEGE_POLITICIANS;
-    static int lastRoundBuiltDemuckPolitician = -ROUNDS_BETWEEN_DEMUCKING_POLITICIANS;
+    static int lastRoundBuiltSettlePolitician = -ROUNDS_BETWEEN_SETTLE_POLITICIANS;
+    static int lastRoundBuiltDemuckPolitician = 0;
     static int lastRoundBuiltSleuthingMuckraker = 0;
+    static int lastRoundBuiltExpensiveScoutingMuckraker = 0;
     static int lastRoundBuiltSlanderer = -ROUNDS_BETWEEN_SLANDERERS_INITIAL;
 
     private static void buildRobot() throws GameActionException {
         int roundNum = rc.getRoundNum();
         int slandererGap = (roundNum < 100) ?  ROUNDS_BETWEEN_SLANDERERS_INITIAL : (roundNum < 500) ? ROUNDS_BETWEEN_SLANDERERS_EARLY : (roundNum < 1000) ? ROUNDS_BETWEEN_SLANDERERS_MIDDLE : ROUNDS_BETWEEN_SLANDERERS_LATE;
-        boolean neutral = true; 
-        MapLocation attackECLoc = Communication.getClosestSiegeableEC(true);
-        if (attackECLoc == null) {
-            attackECLoc = Communication.getClosestSiegeableEC(false);
-            neutral = false; 
+
+        MapLocation settleECLoc = Communication.getClosestSiegeableEC(true);
+        if (settleECLoc != null && roundNum - lastRoundBuiltSettlePolitician > ROUNDS_BETWEEN_SETTLE_POLITICIANS) {
+            int neutralECInfluence = Communication.ecInfluence[settleECLoc.x % 128][settleECLoc.y % 128];
+            int poliInfluence = neutralECInfluence + SETTLE_STARTING_INFLUENCE + 10;
+            poliInfluence |= 1; // odd influence
+            if (buildRobot(RobotType.POLITICIAN, poliInfluence)) {
+                lastRoundBuiltSettlePolitician = roundNum;
+                return;
+            }
         }
 
-        if (attackECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
-            int poliInfluence = 0; 
-            if(neutral) poliInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128] + 10; 
-
-            else{
-                int enemyECInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128];
-                poliInfluence = Math.min(rc.getInfluence() / 3, Math.max(enemyECInfluence / 3, Politician.MIN_SIEGE_MISSION_CONVICTION));
-            }
+        MapLocation siegeECLoc = Communication.getClosestSiegeableEC(false);
+        if (siegeECLoc != null && roundNum - lastRoundBuiltSiegePolitician > ROUNDS_BETWEEN_SIEGE_POLITICIANS) {
+            int enemyECInfluence = Communication.ecInfluence[siegeECLoc.x % 128][siegeECLoc.y % 128];
+            int poliInfluence = Math.min(rc.getInfluence() / 3, Math.max(enemyECInfluence / 3, Politician.MIN_SIEGE_MISSION_CONVICTION));
             poliInfluence |= 1; // odd influence
             if (poliInfluence > Politician.MIN_SIEGE_MISSION_CONVICTION && buildRobot(RobotType.POLITICIAN, poliInfluence)) {
                 lastRoundBuiltSiegePolitician = roundNum;
                 return;
             }
         }
-        if (roundNum - lastRoundBuiltSlanderer > slandererGap &&
-            buildRobot(RobotType.SLANDERER, (int)Math.min(MAX_SLANDERER_INFLUENCE, Math.max(MIN_SLANDERER_INFLUENCE, rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE)))) {
-            lastRoundBuiltSlanderer = roundNum;
+
+        if (safeToBuildSlanderer()) {
+            if (buildRobot(RobotType.SLANDERER, (int)Math.min(MAX_SLANDERER_INFLUENCE, Math.max(MIN_SLANDERER_INFLUENCE, rc.getInfluence() * SLANDERER_INFLUENCE_PERCENTAGE)))) {
+                lastRoundBuiltSlanderer = roundNum;
+            } else {
+                buildRobot(RobotType.MUCKRAKER, 1);
+            }
             return;
         }
 
-        // now it doesnt care if there are sleuth locations or not
-        if (roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
+        MapLocation closestEnemyMuckraker = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER);
+        if (roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS &&
+            closestEnemyMuckraker != null) {
+            int demuckInfluence = (Communication.closestEnemyInfluence[Communication.ENEMY_TYPE_MUCKRAKER] + 10) / 2 * 2; // even influence
+            if (buildRobot(RobotType.POLITICIAN, demuckInfluence)) {
+                lastRoundBuiltDemuckPolitician = roundNum;
+                return;
+            }
+        }
+
+        boolean savingForAttack = siegeECLoc != null || settleECLoc != null;
+
+        MapLocation sleuthLocation = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER);
+        if (!savingForAttack &&
+            sleuthLocation != null &&
+            roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
             if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
                 lastRoundBuiltSleuthingMuckraker = roundNum;
                 return;
             }
         }
-   
-        MapLocation muckrakerLoc = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER);
-        if (roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS && 
-            muckrakerLoc != null) {
-                int demuckInfluence = (Communication.maxEnemyInfluence[Communication.ENEMY_TYPE_MUCKRAKER] + 10) / 2 * 2; // even influence
-                if (buildRobot(RobotType.POLITICIAN, demuckInfluence)) {
-                    lastRoundBuiltDemuckPolitician = roundNum;
+
+        if (Communication.hasAvailableUnitSlots) {
+            if (!savingForAttack &&
+                roundNum - lastRoundBuiltExpensiveScoutingMuckraker > ROUNDS_BETWEEN_EXPENSIVE_SCOUTING_MUCKRAKERS) {
+                if (buildRobot(RobotType.MUCKRAKER, Muckraker.MAX_SCOUT_INFLUENCE)) {
+                    lastRoundBuiltExpensiveScoutingMuckraker = roundNum;
                     return;
                 }
             }
+            buildRobot(RobotType.MUCKRAKER, 1);
+        }
+    }
 
-        if (Communication.hasAvailableUnitSlots) buildRobot(RobotType.MUCKRAKER, 1);
+    private static final int SAFE_SLANDERER_RANGE = 100;
+
+    private static boolean safeToBuildSlanderer() {
+        if(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < SAFE_SLANDERER_RANGE) {
+            return false; 
+        }
+        else {
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
+            for(int i = nearbyRobots.length - 1; i >= 0; i--) {
+                if(nearbyRobots[i].type == RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
+                    return false; 
+                }
+            }
+        }
+        return true;
     }
 
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
         if(type == RobotType.SLANDERER) {
             influence |= 1; // make it odd
-            if(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < 50) {
-                return false; 
-            }
-            else {
-            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
-                for(int i = nearbyRobots.length - 1; i >= 0; i--) {
-                    if(nearbyRobots[i].type == RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
-                        return false; 
-                    }
-                }
-            }
         }
         Direction[] allDirections = Direction.allDirections();
         for (int i = allDirections.length - 1; i >= 0; --i) {
