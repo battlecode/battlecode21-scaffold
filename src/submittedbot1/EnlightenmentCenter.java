@@ -1,8 +1,10 @@
-package qualificationbot;
+package submittedbot1;
 import battlecode.common.*;
 
 public class EnlightenmentCenter {
 
+    static final int MUCKRAKER_INFLUENCE = 1;
+    static final int POLITICIAN_INFLUENCE = 50;
     static final double SLANDERER_INFLUENCE_PERCENTAGE = 0.5;
     static final int MAX_SLANDERER_INFLUENCE = 949;
     public static final double[] BID_PERCENTAGES = new double[] {.007, .014, .025, .05, .2};
@@ -53,20 +55,21 @@ public class EnlightenmentCenter {
     
     }
 
-    static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 5;
-    static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 15;
-    static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 40;
+    static final int ROUNDS_BETWEEN_SIEGE_POLITICIANS = 10;
+    static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 5;
+    static final int ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS = 50;
     
     static final int ROUNDS_BETWEEN_SLANDERERS_LATE = 20;
     static final int ROUNDS_BETWEEN_SLANDERERS_MIDDLE = 15;
     static final int ROUNDS_BETWEEN_SLANDERERS_EARLY = 10;
     static final int ROUNDS_BETWEEN_SLANDERERS_INITIAL = 5;
 
-    static final int SLEUTHING_MUCKRAKER_INFLUENCE = Muckraker.SLEUTH_INFLUENCE;
+    static final int SLEUTHING_MUCKRAKER_INFLUENCE = 100;
+    static final int DEMUCKING_POLITICIAN_INFLUENCE = Politician.MAX_DEMUCK_INFLUENCE;
 
     static int lastRoundBuiltSiegePolitician = -ROUNDS_BETWEEN_SIEGE_POLITICIANS;
     static int lastRoundBuiltDemuckPolitician = -ROUNDS_BETWEEN_DEMUCKING_POLITICIANS;
-    static int lastRoundBuiltSleuthingMuckraker = 0;
+    static int lastRoundBuiltSleuthingMuckraker = -ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS;
     static int lastRoundBuiltSlanderer = -ROUNDS_BETWEEN_SLANDERERS_INITIAL;
 
     private static void buildRobot() throws GameActionException {
@@ -85,10 +88,9 @@ public class EnlightenmentCenter {
 
             else{
                 int enemyECInfluence = Communication.ecInfluence[attackECLoc.x % 128][attackECLoc.y % 128];
-                poliInfluence = Math.min(rc.getInfluence() / 3, Math.max(enemyECInfluence / 3, Politician.MIN_SIEGE_MISSION_CONVICTION));
+                poliInfluence = Math.min(rc.getInfluence() / 3, enemyECInfluence / 3);
             }
-            poliInfluence |= 1; // odd influence
-            if (poliInfluence > Politician.MIN_SIEGE_MISSION_CONVICTION && buildRobot(RobotType.POLITICIAN, poliInfluence)) {
+            if (poliInfluence > Politician.MAX_DEMUCK_INFLUENCE && buildRobot(RobotType.POLITICIAN, poliInfluence)) {
                 lastRoundBuiltSiegePolitician = roundNum;
                 return;
             }
@@ -99,8 +101,8 @@ public class EnlightenmentCenter {
             return;
         }
 
-        // now it doesnt care if there are sleuth locations or not
-        if (roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
+        MapLocation sleuthSectionLoc = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER);
+        if (sleuthSectionLoc != null && roundNum - lastRoundBuiltSleuthingMuckraker > ROUNDS_BETWEEN_SLEUTHING_MUCKRAKERS) {
             if (buildRobot(RobotType.MUCKRAKER, SLEUTHING_MUCKRAKER_INFLUENCE)) {
                 lastRoundBuiltSleuthingMuckraker = roundNum;
                 return;
@@ -109,8 +111,9 @@ public class EnlightenmentCenter {
    
         MapLocation muckrakerLoc = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER);
         if (roundNum - lastRoundBuiltDemuckPolitician > ROUNDS_BETWEEN_DEMUCKING_POLITICIANS && 
-            muckrakerLoc != null) {
-                int demuckInfluence = (Communication.maxEnemyInfluence[Communication.ENEMY_TYPE_MUCKRAKER] + 10) / 2 * 2; // even influence
+            muckrakerLoc != null &&
+            muckrakerLoc.isWithinDistanceSquared(rc.getLocation(), DANGER_RANGE)) {
+                int demuckInfluence = Communication.maxEnemyInfluence[Communication.ENEMY_TYPE_MUCKRAKER] + 10; 
                 if (buildRobot(RobotType.POLITICIAN, demuckInfluence)) {
                     lastRoundBuiltDemuckPolitician = roundNum;
                     return;
@@ -121,15 +124,17 @@ public class EnlightenmentCenter {
     }
 
     private static boolean buildRobot(RobotType type, int influence) throws GameActionException {
+        // TODO: use closest units for this instead
         if(type == RobotType.SLANDERER) {
-            influence |= 1; // make it odd
             if(Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER) != null && Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER).distanceSquaredTo(rc.getLocation()) < 50) {
+                buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE); 
                 return false; 
             }
             else {
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); 
                 for(int i = nearbyRobots.length - 1; i >= 0; i--) {
                     if(nearbyRobots[i].type == RobotType.MUCKRAKER && rc.getTeam() != nearbyRobots[i].team) {
+                        buildRobot(RobotType.POLITICIAN, DEMUCKING_POLITICIAN_INFLUENCE); 
                         return false; 
                     }
                 }
@@ -145,6 +150,8 @@ public class EnlightenmentCenter {
         }
         return false;
     }
+
+    static int DANGER_RANGE = 300;
 
     private static void sendMission() throws GameActionException {
 
@@ -165,10 +172,16 @@ public class EnlightenmentCenter {
                 break;
             case Communication.MISSION_TYPE_DEMUCK:
                 MapLocation enemyMuckrakerLocation = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_MUCKRAKER);
+                if (enemyMuckrakerLocation != null && !rc.getLocation().isWithinDistanceSquared(enemyMuckrakerLocation, DANGER_RANGE)) {
+                    enemyMuckrakerLocation = null;
+                }
                 Communication.sendMissionInfo(enemyMuckrakerLocation, missionType);
                 break;
             case Communication.MISSION_TYPE_DEPOLI:
                 MapLocation enemyPoliticianLocation = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_POLITICIAN);
+                if (enemyPoliticianLocation != null && !rc.getLocation().isWithinDistanceSquared(enemyPoliticianLocation, DANGER_RANGE)) {
+                    enemyPoliticianLocation = null;
+                }
                 Communication.sendMissionInfo(enemyPoliticianLocation, missionType);
                 break;
             default:

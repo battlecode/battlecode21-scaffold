@@ -1,8 +1,9 @@
-package qualificationbot;
+package submittedbot1;
 import battlecode.common.*;
 
 public class Politician {
     static final int MIN_SIEGE_MISSION_CONVICTION = 50;
+    static final int MAX_DEMUCK_INFLUENCE = 30;
     static final int MAX_EMPOWER_RADIUS = 12;
     static final int SMALL_EMPOWER_RADIUS = 2;
 
@@ -59,15 +60,15 @@ public class Politician {
                 rc.canEmpower(closestEnlightenmentCenterDist)) {
                     rc.empower(closestEnlightenmentCenterDist);
             }
-        } else if (closestMuckraker != null && (rc.getInfluence() & 1) == 0) {
+        } else if (closestMuckraker != null && rc.getInfluence() <= MAX_DEMUCK_INFLUENCE) {
             // move within small range of muckraker (or until you cant move anymore) and expose
-            if (closestMuckrakerDist <= SMALL_EMPOWER_RADIUS &&
+            if ((closestMuckrakerDist <= SMALL_EMPOWER_RADIUS || !Pathfinding3.moveTo(closestMuckraker.getLocation())) &&
+                closestMuckrakerDist <= MAX_EMPOWER_RADIUS &&
                 rc.canEmpower(closestMuckrakerDist)) {
                     rc.empower(closestMuckrakerDist);
-            } else {
-                Pathfinding3.moveTo(closestMuckraker.getLocation());
             }
         } else if (rc.getConviction() >= MIN_SIEGE_MISSION_CONVICTION) {
+            // TODO decide whether siege, settle, or closest mission should be prioritized
             // if big, look for siege/settle missions
             MapLocation siegeMissionLocation = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SIEGE);
             MapLocation settleMissionLocation = Communication.getClosestMissionOfType(Communication.MISSION_TYPE_SETTLE);

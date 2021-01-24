@@ -1,4 +1,4 @@
-package qualificationbot;
+package submittedbot1;
 
 import battlecode.common.*;
 import java.util.*;
@@ -204,13 +204,20 @@ public class Communication {
         int type = 0;
         int influenceInfo = 0;
 
-        // priority list:
-        // 1. siegeable/settleable ec's
-        // 2. slanderers
-        // 3. friendly ec's
-        // 4. other enemy units
+        RobotInfo closestThreatUnit = (closestEnemyUnit != null && isAThreat(closestEnemyUnit)) ? closestEnemyUnit : null;
 
-        if (closestSiegeableUnit != null) {
+        // priority list:
+        // 1. threats to ec
+        // 2. siegeable/settleable ec's
+        // 3. slanderers
+        // 4. friendly ec's
+
+        if (closestThreatUnit != null) {
+            targetLoc = closestThreatUnit.getLocation();
+            isEC = 0;
+            type = closestThreatUnit.getType() == RobotType.MUCKRAKER ? ENEMY_TYPE_MUCKRAKER : ENEMY_TYPE_POLITICIAN;
+            influenceInfo = getInfluenceInfo(false, closestThreatUnit.getInfluence());
+        } else if (closestSiegeableUnit != null) {
             targetLoc = closestSiegeableUnit.getLocation();
             isEC = 1;
             type = closestSiegeableUnit.getTeam() == Team.NEUTRAL ? EC_TYPE_NEUTRAL : EC_TYPE_ENEMY;
@@ -225,11 +232,6 @@ public class Communication {
             isEC = 1;
             type = EC_TYPE_FRIENDLY;
             influenceInfo = getInfluenceInfo(true, closestNonSiegeableUnit.getInfluence());
-        } else if (closestEnemyUnit != null) {
-            targetLoc = closestEnemyUnit.getLocation();
-            isEC = 0;
-            type = closestEnemyUnit.getType() == RobotType.MUCKRAKER ? ENEMY_TYPE_MUCKRAKER : ENEMY_TYPE_POLITICIAN;
-            influenceInfo = getInfluenceInfo(false, closestEnemyUnit.getInfluence());
         } else {
             targetLoc = curLoc; // just so it's not null
             isEC = 0;
@@ -244,6 +246,17 @@ public class Communication {
                               (isEC << 14) |
                               (type << 15) |
                               (influenceInfo  << 17));
+    }
+    
+    private static boolean isAThreat(RobotInfo ri) {
+        for (int i = 0; i < MAX_NUM_FRIENDLY_ECS; i++) {
+            if (friendlyECLocations[i] != null &&
+                RobotPlayer.rc.canGetFlag(friendlyECIDs[i]) &&
+                ri.getLocation().isWithinDistanceSquared(friendlyECLocations[i], EnlightenmentCenter.DANGER_RANGE)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int getInfluenceInfo(boolean isEC, int origInfluence) {
