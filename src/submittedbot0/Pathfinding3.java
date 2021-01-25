@@ -1,4 +1,4 @@
-package qualificationbot;
+package submittedbot0;
 import java.util.Arrays;
 
 import battlecode.common.*;

@@ -1,10 +1,9 @@
-package qualificationbot;
+package submittedbot0;
 import battlecode.common.*;
 
 public class Muckraker {
     static final int EXPOSE_RADIUS = 12;
     static final int SLEUTH_INFLUENCE = 50;
-    
     static MapLocation cornerLoc; 
     static MapLocation ecLoc; 
     static MapLocation[] corners; 

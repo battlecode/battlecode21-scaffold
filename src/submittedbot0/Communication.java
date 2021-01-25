@@ -1,4 +1,4 @@
-package qualificationbot;
+package submittedbot0;
 
 import battlecode.common.*;
 import java.util.*;
