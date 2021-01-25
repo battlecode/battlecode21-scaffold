@@ -24,7 +24,7 @@ public class Pathfinding3 {
         return false;
     }
 
-    static final int RANDOM_TARGET_RANGE = 40;
+    static final int RANDOM_TARGET_RANGE = 15;
     static final int FULL_MAP_RANGE = 128;
 
     static MapLocation randomTargetLoc;
@@ -35,22 +35,27 @@ public class Pathfinding3 {
     }
 
     private static void moveToRandomTarget(MapLocation center) throws GameActionException {
-        if (randomTargetLoc == null) {
+        if (randomTargetLoc == null || !Pathfinding3.moveTo(randomTargetLoc)) {
             int range = RANDOM_TARGET_RANGE;
             if (center == null) {
                 MapLocation curLoc = RobotPlayer.rc.getLocation();
-                int x = curLoc.x + FULL_MAP_RANGE * ((int)(Math.random() * 3) - 1);
-                int y = curLoc.y + FULL_MAP_RANGE * ((int)(Math.random() * 3) - 1);
+                Direction dir = Direction.allDirections()[(int)(Math.random() * 8)];
+                while (!RobotPlayer.rc.onTheMap(curLoc.add(dir)) || RobotPlayer.rc.isLocationOccupied(curLoc.add(dir))) {
+                    dir = Direction.allDirections()[(int)(Math.random() * 8)];
+                }
+                
+                int x = curLoc.x + FULL_MAP_RANGE * dir.dx;
+                int y = curLoc.y + FULL_MAP_RANGE * dir.dy;
                 randomTargetLoc = new MapLocation(x, y);
+
+                if (RobotPlayer.rc.canMove(dir)) {
+                    RobotPlayer.rc.move(dir);
+                }
             } else {
                 int x = center.x + (int)(Math.random() * range * 2 + 1) - range;
                 int y = center.y + (int)(Math.random() * range * 2 + 1) - range;
                 randomTargetLoc = new MapLocation(x, y);
             }
-        }
-
-        if (!Pathfinding3.moveTo(randomTargetLoc)) {
-            randomTargetLoc = null;
         }
     }
 

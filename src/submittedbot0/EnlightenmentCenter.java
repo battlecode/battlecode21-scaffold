@@ -1,4 +1,6 @@
 package submittedbot0;
+import org.apache.commons.lang3.ObjectUtils.Null;
+
 import battlecode.common.*;
 
 public class EnlightenmentCenter {
@@ -60,10 +62,10 @@ public class EnlightenmentCenter {
     static final int ROUNDS_BETWEEN_EXPENSIVE_SCOUTING_MUCKRAKERS = 100000;
     static final int ROUNDS_BETWEEN_DEMUCKING_POLITICIANS = 10;
     
-    static final int ROUNDS_BETWEEN_SLANDERERS_LATE = 10;
-    static final int ROUNDS_BETWEEN_SLANDERERS_MIDDLE = 10;
-    static final int ROUNDS_BETWEEN_SLANDERERS_EARLY = 7;
-    static final int ROUNDS_BETWEEN_SLANDERERS_INITIAL = 5;
+    static final int ROUNDS_BETWEEN_SLANDERERS_LATE = 15;
+    static final int ROUNDS_BETWEEN_SLANDERERS_MIDDLE = 12;
+    static final int ROUNDS_BETWEEN_SLANDERERS_EARLY = 10;
+    static final int ROUNDS_BETWEEN_SLANDERERS_INITIAL = 8;
 
     static final int SLEUTHING_MUCKRAKER_INFLUENCE = Muckraker.SLEUTH_INFLUENCE;
     static final int SETTLE_STARTING_INFLUENCE = MIN_SLANDERER_INFLUENCE;
@@ -176,6 +178,8 @@ public class EnlightenmentCenter {
         return false;
     }
 
+    static MapLocation scoutLocation;
+
     private static void sendMission() throws GameActionException {
 
         // TODO add hide missions
@@ -202,18 +206,55 @@ public class EnlightenmentCenter {
                 Communication.sendMissionInfo(enemyPoliticianLocation, missionType);
                 break;
             case Communication.MISSION_TYPE_SCOUT:
+                MapLocation closestEnemySlanderer = Communication.getClosestEnemyUnitOfType(Communication.ENEMY_TYPE_SLANDERER);
+                MapLocation closestEnemyEC = Communication.getClosestSiegeableEC(false);
+
+                if(closestEnemySlanderer != null && closestEnemyEC == null) {
+                    scoutLocation = closestEnemySlanderer;
+                    break;
+                }
+                if (closestEnemyEC != null && closestEnemySlanderer == null) {
+                    scoutLocation = closestEnemyEC;
+                    break;
+                }
+                if (closestEnemyEC != null) {
+                    if (rc.getLocation().distanceSquaredTo(closestEnemyEC) < rc.getLocation().distanceSquaredTo(closestEnemySlanderer)) {
+                        scoutLocation = closestEnemyEC;
+                    } else {
+                        scoutLocation = closestEnemySlanderer;
+                    }
+                    break;
+                }
+
                 MapLocation averageEnemyLocation = Communication.averageEnemyLocation;
-                MapLocation scoutLocation = null;
-                if (averageEnemyLocation != null && Communication.numEnemyUnits > 10) {
+                if (averageEnemyLocation != null && Communication.numEnemyUnits >= 1) {
                     int dx = averageEnemyLocation.x - rc.getLocation().x;
                     int dy = averageEnemyLocation.x - rc.getLocation().x;
-                    scoutLocation = new MapLocation(averageEnemyLocation.x + (int)(2 * dx),
-                                                    averageEnemyLocation.y + (int)(2 * dy));
+                    scoutLocation = new MapLocation(averageEnemyLocation.x + (int)(dx * 0.2),
+                                                    averageEnemyLocation.y + (int)(dy * 0.2));
+                } else {
+                    scoutLocation = null;
                 }
                 Communication.sendMissionInfo(scoutLocation, missionType);
                 break;
             default:
                 break;
+        }
+
+        if (scoutLocation != null) {
+            MapLocation scoutLocationLeftDown = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
+                                                                scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
+            MapLocation scoutLocationLeftUp = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
+                                                              scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
+            MapLocation scoutLocationRightDown = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
+                                                                 scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
+            MapLocation scoutLocationRightUp = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
+                                                               scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
+                                                                 
+            rc.setIndicatorLine(scoutLocationLeftDown, scoutLocationRightDown, 0, 255, 0);
+            rc.setIndicatorLine(scoutLocationRightDown, scoutLocationRightUp, 0, 255, 0);
+            rc.setIndicatorLine(scoutLocationRightUp, scoutLocationLeftUp, 0, 255, 0);
+            rc.setIndicatorLine(scoutLocationLeftUp, scoutLocationLeftDown, 0, 255, 0);
         }
 
         missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;

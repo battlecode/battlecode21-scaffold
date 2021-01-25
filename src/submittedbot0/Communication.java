@@ -125,7 +125,7 @@ public class Communication {
                     siegeableECAtLocation[moddedX][moddedY] = type;
                     ecInfluence[moddedX][moddedY] = influenceInfo * EC_INFLUENCE_SCALE;
                 } else  {
-                    if (type != ENEMY_TYPE_UNKNOWN) {
+                    if (type == ENEMY_TYPE_POLITICIAN) {
                         numEnemyUnits++;
                         totalEnemyX += loc.x;
                         totalEnemyY += loc.y;
