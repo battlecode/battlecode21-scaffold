@@ -241,21 +241,21 @@ public class EnlightenmentCenter {
                 break;
         }
 
-        if (scoutLocation != null) {
-            MapLocation scoutLocationLeftDown = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
-                                                                scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
-            MapLocation scoutLocationLeftUp = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
-                                                              scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
-            MapLocation scoutLocationRightDown = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
-                                                                 scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
-            MapLocation scoutLocationRightUp = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
-                                                               scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
+        // if (scoutLocation != null) {
+        //     MapLocation scoutLocationLeftDown = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
+        //                                                         scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
+        //     MapLocation scoutLocationLeftUp = new MapLocation(scoutLocation.x - Pathfinding3.RANDOM_TARGET_RANGE,
+        //                                                       scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
+        //     MapLocation scoutLocationRightDown = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
+        //                                                          scoutLocation.y - Pathfinding3.RANDOM_TARGET_RANGE);
+        //     MapLocation scoutLocationRightUp = new MapLocation(scoutLocation.x + Pathfinding3.RANDOM_TARGET_RANGE,
+        //                                                        scoutLocation.y + Pathfinding3.RANDOM_TARGET_RANGE);
                                                                  
-            rc.setIndicatorLine(scoutLocationLeftDown, scoutLocationRightDown, 0, 255, 0);
-            rc.setIndicatorLine(scoutLocationRightDown, scoutLocationRightUp, 0, 255, 0);
-            rc.setIndicatorLine(scoutLocationRightUp, scoutLocationLeftUp, 0, 255, 0);
-            rc.setIndicatorLine(scoutLocationLeftUp, scoutLocationLeftDown, 0, 255, 0);
-        }
+        //     rc.setIndicatorLine(scoutLocationLeftDown, scoutLocationRightDown, 0, 255, 0);
+        //     rc.setIndicatorLine(scoutLocationRightDown, scoutLocationRightUp, 0, 255, 0);
+        //     rc.setIndicatorLine(scoutLocationRightUp, scoutLocationLeftUp, 0, 255, 0);
+        //     rc.setIndicatorLine(scoutLocationLeftUp, scoutLocationLeftDown, 0, 255, 0);
+        // }
 
         missionType = (missionType + 1) % Communication.NUM_MISSION_TYPES;
     }

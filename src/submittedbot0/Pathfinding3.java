@@ -158,7 +158,7 @@ public class Pathfinding3 {
         // backtrack to find direction and display path for debugging
         int idx = bestIdx;
         for (int l = level; l > 1; --l) {
-            RobotPlayer.rc.setIndicatorLine(mapLoc[l][idx], mapLoc[l - 1][par[l][idx]], 255, 0, 255);
+            // RobotPlayer.rc.setIndicatorLine(mapLoc[l][idx], mapLoc[l - 1][par[l][idx]], 255, 0, 255);
             idx = par[l][idx];
         }
 
