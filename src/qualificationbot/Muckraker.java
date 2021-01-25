@@ -6,6 +6,10 @@ public class Muckraker {
     static final int MAX_SCOUT_INFLUENCE = 30;
     static final double SCOUT_INFLUENCE_SCALING = .002;
     static final int SLEUTH_INFLUENCE = 100;
+    static MapLocation cornerLoc; 
+    static MapLocation ecLoc; 
+    static MapLocation[] corners; 
+    static boolean staticEcDefense;  
 
     static RobotController rc;
 
@@ -22,10 +26,27 @@ public class Muckraker {
         }
     }
 
-    public static void initialize() throws GameActionException { }
+    public static void initialize() throws GameActionException { 
+        RobotInfo[] nearbyBots = rc.senseNearbyRobots(3); 
+        for(int i = nearbyBots.length - 1; i >= 0; i--) {
+            if(nearbyBots[i].type == RobotType.ENLIGHTENMENT_CENTER && rc.getTeam() == nearbyBots[i].team) {
+                ecLoc = nearbyBots[i].location; 
+                corners = new MapLocation[]{
+                    ecLoc.add(Direction.NORTH).add(Direction.NORTH),
+                    ecLoc.add(Direction.SOUTH).add(Direction.SOUTH),
+                    ecLoc.add(Direction.EAST).add(Direction.EAST),
+                    ecLoc.add(Direction.WEST).add(Direction.WEST),
+                }; 
+
+                break;
+            }
+        }
+        staticEcDefense = false; 
+    }
 
     public static void executeTurn(int turnNumber) throws GameActionException {
         // check for nearby enemy slanderers
+        if(staticEcDefense) return; 
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         RobotInfo closestTarget = null;
         int closestDist = Integer.MAX_VALUE;
@@ -53,7 +74,25 @@ public class Muckraker {
                 Pathfinding3.moveToRandomTarget();
             }
         } else {
+           // if(rc.canDetectLocation(ecLoc)) protectEcCorners(); 
             Pathfinding3.moveToRandomTarget();
         }
     }
+    static void protectEcCorners() throws GameActionException {
+        
+
+        for(int i = corners.length - 1; i >= 0; i--) {
+            while(rc.canDetectLocation(corners[i]) && !rc.isLocationOccupied(corners[i])) {
+                Pathfinding3.moveTo(corners[i]);
+                if(rc.getLocation() == corners[i]) {
+                    staticEcDefense = true; 
+                    break; 
+                }
+            }
+            if(staticEcDefense) break;
+        }
+
+    } 
 }
+
+
